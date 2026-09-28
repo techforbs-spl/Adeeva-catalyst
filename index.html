@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adeeva Catalyst — Order Dispatch & FTP Suite</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="adeeva-logo.png">
+</head>
+<body>
+
+  <!-- Top Branding Header & Navigation -->
+  <header class="app-header">
+    <div class="header-top-row">
+      <div class="logo-area">
+        <a href="https://www.adeeva.com/" target="_blank" title="Visit Adeeva Nutritionals Official Site">
+          <img src="adeeva-logo.png" alt="Adeeva Nutritionals" class="adeeva-main-logo">
+        </a>
+        <div class="app-badge-tag">
+          <h1>Catalyst Order Dispatch</h1>
+          <p>Electronic Data Interchange & FTP Gateway</p>
+        </div>
+      </div>
+      <div class="header-right-tools">
+        <div class="toll-free-contact" title="Adeeva Toll Free Support">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          <span>Toll Free: 1 888 251 1010</span>
+        </div>
+        <div class="header-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-history" onclick="switchMainTab('history')" title="View previous 4-file packages">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Order History (<span id="header-history-count">0</span>)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-load-sample">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Load Sample (ORD0042588)
+          </button>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-clear-form">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            Clear Form
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Adeeva Bronze Navigation Bar -->
+    <div class="adeeva-nav-bar">
+      <div class="adeeva-nav-content">
+        <ul class="nav-links">
+          <li id="nav-tab-dispatch" class="active"><a href="#order-form" onclick="event.preventDefault(); switchMainTab('dispatch');">Order Dispatch</a></li>
+          <li id="nav-tab-history"><a href="#history" onclick="event.preventDefault(); switchMainTab('history');">Order History & 4 Files <span class="nav-counter-badge" id="history-nav-count">0</span></a></li>
+          <li><a href="#items-table" onclick="switchMainTab('dispatch');">Products & Items</a></li>
+          <li><a href="#ftp-section" onclick="switchMainTab('dispatch');">FTP Gateway</a></li>
+          <li><a href="#files-card" onclick="switchMainTab('dispatch');">Output Files</a></li>
+          <li><a href="https://www.adeeva.com/" target="_blank">Adeeva.com ↗</a></li>
+        </ul>
+        <div class="nav-system-status">
+          <span class="status-dot"></span>
+          <span>Catalyst Engine Active</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Workspace -->
+  <div class="main-container" id="view-dispatch">
+    
+    <!-- Left Column: Order Data Form -->
+    <main class="form-container">
+      <form id="order-form">
+        
+        <!-- Section 1: Order & Invoice Identification -->
+        <section class="form-section glass-panel">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+              </span>
+              1. Order & Invoice Details
+            </div>
+            <span class="label-hint">Defines file naming and core references</span>
+          </div>
+
+          <div class="grid-4">
+            <div class="form-group">
+              <label for="orderNo">Order Number * <span class="label-hint">(e.g. ORD0042588)</span></label>
+              <input type="text" id="orderNo" name="orderNo" class="form-control" required placeholder="ORD0042588">
+            </div>
+            <div class="form-group">
+              <label for="orderId">Order ID * <span class="label-hint">(e.g. 40139)</span></label>
+              <input type="text" id="orderId" name="orderId" class="form-control" required placeholder="40139">
+            </div>
+            <div class="form-group">
+              <label for="invoiceNumber">Invoice Number *</label>
+              <input type="text" id="invoiceNumber" name="invoiceNumber" class="form-control" required placeholder="IN00042251">
+            </div>
+            <div class="form-group">
+              <label for="shipVia">Ship Via</label>
+              <input type="text" id="shipVia" name="shipVia" class="form-control" value="Purolator" placeholder="Purolator">
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label for="orderDate">Order Date *</label>
+              <input type="date" id="orderDate" name="orderDate" class="form-control" required>
+            </div>
+            <div class="form-group">
+              <label for="dateWanted">Date Wanted</label>
+              <input type="date" id="dateWanted" name="dateWanted" class="form-control">
+            </div>
+            <div class="form-group">
+              <label for="terms">Payment Terms</label>
+              <input type="text" id="terms" name="terms" class="form-control" placeholder="Net 30 / Pre-paid">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="orderNotes">Order Notes / Delivery Instructions</label>
+            <input type="text" id="orderNotes" name="orderNotes" class="form-control" placeholder="NO SIGNATURE REQUIRED">
+          </div>
+        </section>
+
+        <!-- Section 2: Bill-To / Customer Information -->
+        <section class="form-section glass-panel">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+              </span>
+              2. Customer & Bill-To Information
+            </div>
+            <span class="label-hint">Generates customer-*.xml</span>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label for="customerNo">Customer No. * <span class="label-hint">(e.g. 03507)</span></label>
+              <input type="text" id="customerNo" name="customerNo" class="form-control" required placeholder="03507">
+            </div>
+            <div class="form-group">
+              <label for="customerName">Customer / Company Name *</label>
+              <input type="text" id="customerName" name="customerName" class="form-control" required placeholder="Chagnon, Olivier">
+            </div>
+            <div class="form-group">
+              <label for="attention">Attention</label>
+              <input type="text" id="attention" name="attention" class="form-control" placeholder="Chagnon, Olivier">
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="form-group">
+              <label for="address1">Address Line 1 *</label>
+              <input type="text" id="address1" name="address1" class="form-control" required placeholder="20 Desbiens St">
+            </div>
+            <div class="form-group">
+              <label for="address2">Address Line 2</label>
+              <input type="text" id="address2" name="address2" class="form-control" placeholder="-, -  ">
+            </div>
+          </div>
+
+          <div class="grid-4">
+            <div class="form-group">
+              <label for="city">City *</label>
+              <input type="text" id="city" name="city" class="form-control" required placeholder="Amqui">
+            </div>
+            <div class="form-group">
+              <label for="provinceState">Province / State *</label>
+              <input type="text" id="provinceState" name="provinceState" class="form-control" required placeholder="QC">
+            </div>
+            <div class="form-group">
+              <label for="postalZip">Postal / Zip *</label>
+              <input type="text" id="postalZip" name="postalZip" class="form-control" required placeholder="G5J 3P1">
+            </div>
+            <div class="form-group">
+              <label for="country">Country *</label>
+              <input type="text" id="country" name="country" class="form-control" required value="CA">
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="form-group">
+              <label for="telephone">Telephone *</label>
+              <input type="text" id="telephone" name="telephone" class="form-control" required placeholder="4186291244">
+            </div>
+            <div class="form-group">
+              <label for="fax">Fax</label>
+              <input type="text" id="fax" name="fax" class="form-control" placeholder="">
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input type="email" id="email" name="email" class="form-control" required placeholder="info@axesanteoptimale.com">
+            </div>
+          </div>
+        </section>
+
+        <!-- Section 3: Ship-To Information -->
+        <section class="form-section glass-panel">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+              </span>
+              3. Ship-To Information
+            </div>
+            <label class="checkbox-toggle">
+              <input type="checkbox" id="sameAsBillTo" checked>
+              <span>Same as Bill-To Address</span>
+            </label>
+          </div>
+
+          <div id="shipToFieldsContainer" style="display: none;">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="shipToName">Recipient / Ship-To Name</label>
+                <input type="text" id="shipToName" name="shipToName" class="form-control" placeholder="Chagnon, Olivier">
+              </div>
+              <div class="form-group">
+                <label for="shipToAttention">Ship-To Attention</label>
+                <input type="text" id="shipToAttention" name="shipToAttention" class="form-control" placeholder="Chagnon, Olivier">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="shipToAddress1">Ship-To Address Line 1</label>
+                <input type="text" id="shipToAddress1" name="shipToAddress1" class="form-control" placeholder="20 Desbiens St">
+              </div>
+              <div class="form-group">
+                <label for="shipToAddress2">Ship-To Address Line 2</label>
+                <input type="text" id="shipToAddress2" name="shipToAddress2" class="form-control" placeholder="Suite 100">
+              </div>
+            </div>
+
+            <div class="grid-4">
+              <div class="form-group">
+                <label for="shipToCity">City</label>
+                <input type="text" id="shipToCity" name="shipToCity" class="form-control" placeholder="Amqui">
+              </div>
+              <div class="form-group">
+                <label for="shipToProvince">Province / State</label>
+                <input type="text" id="shipToProvince" name="shipToProvince" class="form-control" placeholder="QC">
+              </div>
+              <div class="form-group">
+                <label for="shipToPostal">Postal / Zip</label>
+                <input type="text" id="shipToPostal" name="shipToPostal" class="form-control" placeholder="G5J 3P1">
+              </div>
+              <div class="form-group">
+                <label for="shipToCountry">Country</label>
+                <input type="text" id="shipToCountry" name="shipToCountry" class="form-control" value="CA">
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="shipToPhone">Telephone</label>
+                <input type="text" id="shipToPhone" name="shipToPhone" class="form-control" placeholder="4186291244">
+              </div>
+              <div class="form-group">
+                <label for="shipToEmail">Email</label>
+                <input type="email" id="shipToEmail" name="shipToEmail" class="form-control" placeholder="info@axesanteoptimale.com">
+              </div>
+            </div>
+          </div>
+          <div id="shipToSyncNotice" class="label-hint" style="color: var(--primary-light);">
+            ✓ Currently synced automatically with Bill-To address. Uncheck above to enter a different delivery destination.
+          </div>
+        </section>
+
+        <!-- Section 4: Line Items -->
+        <section class="form-section glass-panel">
+          <div class="section-header">
+            <div class="section-title">
+              <span class="section-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+              </span>
+              4. Products & Order Line Items
+            </div>
+            <div style="display: flex; gap: 0.5rem; align-items: center;">
+              <button type="button" class="btn btn-outline-teal btn-sm" id="btn-open-catalog" onclick="openCatalogModal()" title="Open Adeeva Product & SKU Catalog Admin Panel">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+                Manage Products & SKU
+              </button>
+              <button type="button" class="btn btn-outline-primary btn-sm" id="btn-add-item">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                Add Item Row
+              </button>
+            </div>
+          </div>
+
+          <div class="items-table-wrapper">
+            <table class="items-table" id="items-table">
+              <thead>
+                <tr>
+                  <th style="min-width: 250px;">Adeeva Product Name *</th>
+                  <th style="width: 140px;">SKU *</th>
+                  <th style="width: 75px;">Req. Qty *</th>
+                  <th style="width: 75px;">Shipped</th>
+                  <th style="width: 65px;">B.O.</th>
+                  <th style="width: 105px;">Unit Price ($) *</th>
+                  <th style="width: 105px;">Extended ($)</th>
+                  <th style="width: 38px;"></th>
+                </tr>
+              </thead>
+              <tbody id="items-body">
+                <!-- Dynamically injected rows -->
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Section 5: Totals Summary -->
+          <div class="totals-grid">
+            <div>
+              <div class="form-group" style="margin-top: 1rem;">
+                <label for="companyName">Issuer Company (PDF Header)</label>
+                <input type="text" id="companyName" class="form-control" value="Adeeva Nutritionals Canada Inc.">
+              </div>
+            </div>
+
+            <div class="totals-card">
+              <div class="totals-row">
+                <span>Subtotal:</span>
+                <span id="display-subtotal" style="font-weight: 600;">$0.00</span>
+              </div>
+              <div class="totals-row">
+                <span>Less Discount:</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>$</span>
+                  <input type="number" step="0.01" id="discount" class="form-control" style="width: 90px; padding: 2px 6px; text-align: right;" value="0.00">
+                </div>
+              </div>
+              <div class="totals-row">
+                <span>Misc. Charge (Shipping):</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>$</span>
+                  <input type="number" step="0.01" id="shipping" class="form-control" style="width: 90px; padding: 2px 6px; text-align: right;" value="0.00">
+                </div>
+              </div>
+              <div class="totals-row">
+                <span>Total Sales Tax (5% QC):</span>
+                <div style="display: flex; align-items: center; gap: 4px;">
+                  <span>$</span>
+                  <input type="number" step="0.01" id="tax" class="form-control" style="width: 90px; padding: 2px 6px; text-align: right;" value="0.00">
+                </div>
+              </div>
+              <div class="totals-row grand-total">
+                <span>Total Amount:</span>
+                <span id="display-total" class="total-amount">$0.00</span>
+              </div>
+            </div>
+          </div>
+
+        </section>
+
+      </form>
+    </main>
+
+    <!-- Right Column: FTP Settings & Actions Hub -->
+    <aside class="sidebar">
+      
+      <!-- Primary Action Buttons Card -->
+      <div class="glass-panel" style="padding: 1.5rem;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+          Execution Hub
+        </h3>
+        <p style="font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 1.25rem;">
+          Generate 4 local files or upload them straight to your FTP server.
+        </p>
+
+        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+          <button type="button" class="btn btn-teal btn-lg btn-block" id="btn-generate">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Generate 4 Files
+          </button>
+
+          <button type="button" class="btn btn-primary btn-lg btn-block" id="btn-upload-ftp">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            Send 4 Files to FTP
+          </button>
+
+          <button type="button" class="btn btn-secondary btn-block" id="btn-download-zip" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download All (ZIP)
+          </button>
+        </div>
+      </div>
+
+      <!-- Generated Files Status Card -->
+      <div class="glass-panel files-card" id="files-card">
+        <div class="section-header" style="margin-bottom: 0.5rem; padding-bottom: 0.5rem;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: var(--adeeva-bronze);">Generated Output Files</h4>
+          <span id="files-badge" class="status-badge" style="background: var(--bg-subtle); color: var(--text-muted);">Ready to build</span>
+        </div>
+
+        <div class="file-list" id="file-list">
+          <div style="font-size: 0.8rem; color: var(--text-muted); text-align: center; padding: 1.5rem 0;">
+            Fill out the form and click <strong>Generate 4 Files</strong> or <strong>Send to FTP</strong> to create:
+            <ul style="list-style: none; margin-top: 0.75rem; line-height: 1.8; color: var(--text-dark);">
+              <li>📄 customer-[order].xml</li>
+              <li>📄 shipto-[order].xml</li>
+              <li>📄 order-[order].xml</li>
+              <li>📑 invoice-[order].pdf</li>
+            </ul>
+          </div>
+        </div>
+        <div style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--border-light); text-align: center;">
+          <button type="button" class="btn btn-outline-teal btn-sm btn-block" onclick="switchMainTab('history')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Open Order History Archive →
+          </button>
+        </div>
+      </div>
+
+      <!-- FTP Destination & Folder Selection Card -->
+      <div class="glass-panel ftp-card" id="ftp-section">
+        <div class="section-header" style="margin-bottom: 0.85rem;">
+          <div class="section-title">
+            <span class="section-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <span>FTP Destination</span>
+          </div>
+          <span id="ftp-status-badge" class="status-badge connected">Checking...</span>
+        </div>
+
+        <!-- Server Connection Bar -->
+        <div class="ftp-server-info-box">
+          <div class="ftp-server-meta">
+            <div class="ftp-server-indicator">
+              <span class="pulse-indicator" id="ftp-pulse-indicator"></span>
+              <span class="server-host-text" id="ftp-env-host-label">Connecting to server...</span>
+            </div>
+            <span class="server-auth-badge" id="ftp-env-user-label">Credentials loaded from .env</span>
+          </div>
+          <button type="button" class="btn btn-outline-teal btn-sm" id="btn-test-ftp" title="Test connection to FTP server">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            Test Connection
+          </button>
+        </div>
+
+        <!-- Target Destination Path Input & Browse Group -->
+        <div class="destination-path-wrapper">
+          <label class="destination-path-label" for="ftpRemoteDir">
+            <span>Target Upload Directory</span>
+            <span class="label-hint">Folder on FTP server</span>
+          </label>
+          <div class="path-input-group">
+            <span class="path-prefix-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            </span>
+            <input type="text" id="ftpRemoteDir" class="form-control path-control" value="/for_ccm/archive" placeholder="/for_ccm/archive">
+            <button type="button" class="btn btn-browse-action" id="btn-browse-ftp">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+              Browse FTP
+            </button>
+          </div>
+          <div class="path-quick-help">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            <span>Click <strong>Browse FTP</strong> to view all remote folders and select where the 4 files will be uploaded.</span>
+          </div>
+        </div>
+
+        <!-- Quick Destination Shortcuts -->
+        <div class="quick-destinations-block">
+          <span class="quick-dest-title">Quick Destination Shortcuts:</span>
+          <div class="quick-folder-chips">
+            <button type="button" class="folder-chip active-chip" onclick="setQuickFolder('/for_ccm/archive')">/for_ccm/archive</button>
+            <button type="button" class="folder-chip" onclick="setQuickFolder('/for_ccm')">/for_ccm</button>
+            <button type="button" class="folder-chip" onclick="setQuickFolder('/for_adeeva')">/for_adeeva</button>
+            <button type="button" class="folder-chip" onclick="setQuickFolder('/Invoices')">/Invoices</button>
+            <button type="button" class="folder-chip" onclick="setQuickFolder('/')">/</button>
+          </div>
+        </div>
+
+        <!-- Optional Manual Overrides Accordion -->
+        <details class="ftp-manual-accordion">
+          <summary>Advanced / Override Server Credentials</summary>
+          <div class="manual-credentials-panel">
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="ftpHost">Host</label>
+                <input type="text" id="ftpHost" class="form-control" placeholder="From .env">
+              </div>
+              <div class="form-group">
+                <label for="ftpPort">Port</label>
+                <input type="number" id="ftpPort" class="form-control" placeholder="21">
+              </div>
+            </div>
+            <div class="grid-2">
+              <div class="form-group">
+                <label for="ftpUser">User</label>
+                <input type="text" id="ftpUser" class="form-control" placeholder="From .env">
+              </div>
+              <div class="form-group">
+                <label for="ftpPassword">Password</label>
+                <input type="password" id="ftpPassword" class="form-control" placeholder="••••••••">
+              </div>
+            </div>
+            <label class="checkbox-toggle" style="margin-top: 0.5rem;">
+              <input type="checkbox" id="ftpSecure">
+              <span>Use Secure FTPS (Explicit TLS)</span>
+            </label>
+          </div>
+        </details>
+      </div>
+
+    </aside>
+
+  </div> <!-- /#view-dispatch -->
+
+  <!-- Order History & 4 Files View Container -->
+  <div class="main-container history-view-container" id="view-history" style="display: none;">
+    
+    <!-- History View Header Banner -->
+    <div class="glass-panel history-header-panel">
+      <div class="history-header-top">
+        <div class="history-title-area">
+          <div class="section-icon" style="background: rgba(115, 71, 36, 0.12); color: var(--adeeva-bronze); width: 42px; height: 42px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <h2 class="history-title">Order History & 4 Files Archive</h2>
+            <p class="history-subtitle">View, inspect XML & PDF contents, download packages, and re-dispatch previously created 4-file packages.</p>
+          </div>
+        </div>
+        <div class="history-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-history" onclick="fetchOrderHistory()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh History
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="switchMainTab('dispatch')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + New Order Dispatch
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="history-metrics-row">
+        <div class="history-metric-card">
+          <span class="metric-label">Total Generated Packages</span>
+          <span class="metric-val" id="metric-total-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Uploaded to FTP</span>
+          <span class="metric-val text-success" id="metric-ftp-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Local Only / Pending</span>
+          <span class="metric-val text-warning" id="metric-pending-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Files per Package</span>
+          <span class="metric-val" style="color: var(--adeeva-teal);">4 Files <small style="font-size: 0.7rem; font-weight: normal; color: var(--text-muted);">(3 XML + 1 PDF)</small></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Search & Filter Panel -->
+    <div class="glass-panel history-filter-panel">
+      <div class="history-search-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="history-search-input" class="form-control" placeholder="Search orders by Order # (e.g. ORD0042588), Customer Name, or Invoice #...">
+      </div>
+      <div class="history-filter-chips">
+        <button type="button" class="filter-chip active-chip" data-filter="all" onclick="filterHistoryCards('all', this)">All Packages (<span id="chip-count-all">0</span>)</button>
+        <button type="button" class="filter-chip" data-filter="ftp" onclick="filterHistoryCards('ftp', this)">Uploaded to FTP (<span id="chip-count-ftp">0</span>)</button>
+        <button type="button" class="filter-chip" data-filter="local" onclick="filterHistoryCards('local', this)">Local Only (<span id="chip-count-local">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- History Packages Container -->
+    <div id="history-packages-list" class="history-packages-list">
+      <!-- Loaded dynamically via app.js -->
+    </div>
+
+  </div> <!-- /#view-history -->
+
+  <!-- Preview Modal (For XML and PDF) -->
+  <div class="modal-overlay" id="preview-modal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 id="preview-modal-title">File Preview</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-preview">&times;</button>
+      </div>
+      <div class="modal-body" id="preview-modal-body">
+        <!-- Content will be rendered dynamically -->
+      </div>
+    </div>
+  </div>
+
+  <!-- FTP Directory Explorer Modal -->
+  <div class="modal-overlay" id="ftp-browser-modal">
+    <div class="modal-content" style="max-width: 860px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="section-icon" style="width: 32px; height: 32px; background: rgba(56, 189, 248, 0.15);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.1rem; font-weight: 700;">Remote FTP Directory Explorer</h3>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Browse files on FTP & select your upload destination folder</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-ftp-browser">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.75rem;">
+        
+        <!-- Navigation bar & controls -->
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 1rem; flex-wrap: wrap;">
+          <!-- Breadcrumbs path -->
+          <div id="ftp-breadcrumbs" style="display: flex; align-items: center; gap: 0.35rem; background: #0b111e; padding: 0.45rem 0.85rem; border-radius: 8px; border: 1px solid var(--border-color); flex: 1; min-width: 260px; overflow-x: auto;">
+            <!-- Rendered dynamically -->
+          </div>
+
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-ftp-up-dir" title="Go up one folder">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="18 15 12 9 6 15"/></svg>
+              Up
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-ftp-refresh" title="Refresh current folder">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+              Refresh
+            </button>
+            <button type="button" class="btn btn-secondary btn-sm" id="btn-ftp-new-folder" title="Create new directory">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              New Folder
+            </button>
+          </div>
+        </div>
+
+        <!-- Filter bar -->
+        <div style="margin-bottom: 0.75rem;">
+          <input type="text" id="ftp-filter-input" class="form-control" placeholder="Search files or folders in current directory..." style="font-size: 0.8rem; padding: 0.5rem 0.75rem;">
+        </div>
+
+        <!-- Directory & File list container -->
+        <div id="ftp-file-browser-container" style="border: 1px solid var(--border-color); border-radius: var(--radius-md); max-height: 380px; min-height: 240px; overflow-y: auto; background: #0f172a;">
+          <!-- Loaded dynamically -->
+        </div>
+
+        <!-- Footer / Selected Path action -->
+        <div style="margin-top: 1.25rem; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--border-color); padding-top: 1rem; flex-wrap: wrap; gap: 1rem;">
+          <div>
+            <span style="font-size: 0.75rem; color: var(--text-secondary);">Target Remote Path:</span>
+            <div id="ftp-selected-path-display" style="font-family: 'JetBrains Mono', monospace; font-size: 0.95rem; font-weight: 600; color: var(--primary-light);">
+              /
+            </div>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <button type="button" class="btn btn-secondary" id="btn-close-ftp-browser-2">Cancel</button>
+            <button type="button" class="btn btn-success" id="btn-ftp-use-path">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+              Select This Location
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- FTP Upload Progress Modal -->
+  <div class="modal-overlay" id="ftp-modal">
+    <div class="modal-content" style="max-width: 580px;">
+      <div class="modal-header">
+        <h3 id="ftp-modal-title">FTP Dispatch Status</h3>
+        <button type="button" class="btn-close-modal" id="btn-close-ftp-modal">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="ftp-status-message" style="font-size: 0.9rem; margin-bottom: 1rem; color: var(--text-secondary);">
+          Initiating transfer...
+        </div>
+        <div class="upload-checklist" id="ftp-checklist">
+          <!-- Live check items -->
+        </div>
+        <div style="margin-top: 1.5rem; text-align: right;">
+          <button type="button" class="btn btn-secondary" id="btn-ftp-done">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Product Catalog & SKU Admin Panel Modal -->
+  <div class="modal-overlay" id="catalog-modal">
+    <div class="modal-content" style="max-width: 840px;">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 0.75rem;">
+          <div class="section-icon" style="background: var(--adeeva-teal-light); color: var(--adeeva-teal);">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <div>
+            <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--adeeva-bronze);">Adeeva Product Catalog & SKU Manager</h3>
+            <p style="font-size: 0.75rem; color: var(--text-secondary);">Manage products, SKUs, and default pricing available in order dropdowns</p>
+          </div>
+        </div>
+        <button type="button" class="btn-close-modal" id="btn-close-catalog-modal" onclick="closeCatalogModal()">&times;</button>
+      </div>
+
+      <div class="modal-body" style="padding: 1.25rem 1.5rem;">
+        <!-- Add Product Form Card -->
+        <div style="background: var(--bg-subtle); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 1rem 1.25rem; margin-bottom: 1.25rem;">
+          <h4 style="font-size: 0.85rem; font-weight: 700; color: var(--adeeva-bronze); margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.4rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            Add New Product to Catalog
+          </h4>
+          <form id="add-product-form" onsubmit="event.preventDefault(); handleAddProduct();">
+            <div style="display: grid; grid-template-columns: 1fr 1fr auto; gap: 0.75rem; align-items: flex-end;">
+              <div class="form-group" style="margin: 0;">
+                <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-dark);">Product Name *</label>
+                <input type="text" id="new-prod-name" class="form-control" placeholder="e.g. Glucosamine Joint Formula" required style="font-size: 0.85rem; padding: 0.5rem 0.75rem;">
+              </div>
+              <div class="form-group" style="margin: 0;">
+                <label style="font-size: 0.75rem; font-weight: 600; margin-bottom: 0.25rem; color: var(--text-dark);">SKU Number *</label>
+                <input type="text" id="new-prod-sku" class="form-control" placeholder="e.g. KNS-000003" required style="font-size: 0.85rem; padding: 0.5rem 0.75rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase;">
+              </div>
+              <button type="submit" class="btn btn-teal" style="height: 38px; padding: 0 1.25rem; font-weight: 700; white-space: nowrap;">
+                + Add Product
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Filter and Search Bar -->
+        <div style="display: flex; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+          <div style="flex: 1; position: relative;">
+            <input type="text" id="catalog-search-input" class="form-control" placeholder="Search by product name or SKU..." style="font-size: 0.825rem; padding: 0.45rem 0.75rem;">
+          </div>
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-reset-catalog" title="Reset to default official Adeeva products">
+            Reset to Official Adeeva Catalog
+          </button>
+        </div>
+
+        <!-- Catalog Items Table -->
+        <div style="border: 1px solid var(--border-light); border-radius: var(--radius-sm); max-height: 340px; overflow-y: auto; background: #ffffff;">
+          <table class="items-table" style="font-size: 0.825rem;">
+            <thead>
+              <tr style="position: sticky; top: 0; background: var(--bg-subtle); z-index: 2;">
+                <th>Adeeva Product Name</th>
+                <th style="width: 160px;">SKU Number</th>
+                <th style="width: 70px; text-align: center;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="catalog-table-body">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <div style="margin-top: 1rem; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-light); padding-top: 0.85rem;">
+          <span id="catalog-count-badge" style="font-size: 0.75rem; color: var(--text-muted);">Loaded 14 products</span>
+          <button type="button" class="btn btn-primary btn-sm" id="btn-done-catalog" onclick="closeCatalogModal()">Done</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>
