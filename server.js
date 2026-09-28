@@ -14,6 +14,7 @@ const DATA_DIR = isVercel ? path.join(os.tmpdir(), 'adeeva-data') : path.join(__
 const CONFIG_FILE = isVercel ? path.join(os.tmpdir(), 'ftp-config.json') : path.join(__dirname, 'ftp-config.json');
 const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
 const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+const PRODUCTS_MD_FILE = isVercel ? path.join(os.tmpdir(), 'PRODUCTS.md') : path.join(__dirname, 'PRODUCTS.md');
 
 try {
   if (!fs.existsSync(OUTPUT_DIR)) {
@@ -43,6 +44,11 @@ try {
           try { fs.copyFileSync(path.join(bundledData, fn), target); } catch (_) {}
         }
       });
+    }
+
+    const bundledMd = path.join(__dirname, 'PRODUCTS.md');
+    if (fs.existsSync(bundledMd) && !fs.existsSync(PRODUCTS_MD_FILE)) {
+      try { fs.copyFileSync(bundledMd, PRODUCTS_MD_FILE); } catch (_) {}
     }
   }
 } catch (err) {
@@ -795,7 +801,124 @@ const DEFAULT_PRODUCTS = [
   { id: 'prod_14', name: 'Sleep Enhancement Formula', sku: 'KNS-000014', price: 28.50, description: '60 capsules' }
 ];
 
+function parseProductsFromMarkdown(content) {
+  if (!content || typeof content !== 'string') return [];
+  const lines = content.split(/\r?\n/);
+  const products = [];
+  let inTable = false;
+  let headers = [];
+
+  for (let line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed.startsWith('|')) continue;
+    
+    const rawCells = trimmed.split('|');
+    const cells = rawCells.slice(1, -1).map(c => c.trim());
+
+    if (cells.length < 2) continue;
+
+    // Check if separator row (e.g. |---|---|)
+    if (cells.every(c => /^:?-+:?$/.test(c))) {
+      inTable = true;
+      continue;
+    }
+
+    // Header row
+    if (!inTable) {
+      headers = cells.map(h => h.toLowerCase());
+      continue;
+    }
+
+    // Data row
+    let name = '';
+    let sku = '';
+    let price = 0;
+    let description = '';
+
+    const nameIdx = headers.findIndex(h => h.includes('name') || h.includes('product'));
+    const skuIdx = headers.findIndex(h => h.includes('sku') || h.includes('code') || h.includes('part'));
+    const priceIdx = headers.findIndex(h => h.includes('price') || h.includes('cost') || h.includes('rate'));
+    const descIdx = headers.findIndex(h => h.includes('desc') || h.includes('size') || h.includes('detail') || h.includes('pack'));
+
+    name = (nameIdx !== -1 && cells[nameIdx] !== undefined) ? cells[nameIdx] : cells[0] || '';
+    sku = (skuIdx !== -1 && cells[skuIdx] !== undefined) ? cells[skuIdx] : cells[1] || '';
+    
+    const rawPrice = (priceIdx !== -1 && cells[priceIdx] !== undefined) ? cells[priceIdx] : cells[2];
+    price = rawPrice ? parseFloat(rawPrice.replace(/[^0-9.]/g, '')) || 0 : 0;
+    
+    description = (descIdx !== -1 && cells[descIdx] !== undefined) ? cells[descIdx] : (cells[3] || '');
+
+    if (name && sku) {
+      const cleanSku = sku.toUpperCase();
+      products.push({
+        id: `prod_${cleanSku.replace(/[^a-zA-Z0-9]/g, '_').toLowerCase()}`,
+        name: name,
+        sku: cleanSku,
+        price: isNaN(price) ? 0 : price,
+        description: description
+      });
+    }
+  }
+
+  return products;
+}
+
+function formatProductsToMarkdown(products) {
+  let md = `# 🌿 Adëeva Product & SKU Catalog\n\n`;
+  md += `> **Local Product Database**: You can add, edit, or remove products directly in the Markdown table below.  \n`;
+  md += `> Whenever you save this file, the changes will automatically be reflected in the **Section 4 Product Dropdown**, auto-select the corresponding SKU number, and update pricing in the Adeeva Catalyst software!\n\n`;
+  md += `---\n\n`;
+  md += `### 📝 How to Add a New Product\n`;
+  md += `Simply add a new line at the bottom of the table below:\n`;
+  md += `\`\`\`markdown\n`;
+  md += `| Your Product Name | SKU-CODE | 29.95 | 60 capsules |\n`;
+  md += `\`\`\`\n`;
+  md += `- **Product Name**: The full name displayed in the dropdown.\n`;
+  md += `- **SKU**: The exact SKU / catalog number (e.g. \`KNS-000015\`).\n`;
+  md += `- **Price**: Unit price in CAD (numbers only, e.g. \`24.50\`).\n`;
+  md += `- **Description**: Packaging or dosage info (e.g. \`90 softgels\`).\n\n`;
+  md += `---\n\n`;
+  md += `### 📦 Product Catalog Table\n\n`;
+  md += `| Product Name | SKU | Price | Description |\n`;
+  md += `| :--- | :--- | :--- | :--- |\n`;
+  for (const p of products) {
+    const name = (p.name || '').replace(/\|/g, '-').trim();
+    const sku = (p.sku || '').replace(/\|/g, '-').trim();
+    const price = (typeof p.price === 'number') ? p.price.toFixed(2) : (parseFloat(p.price) || 0).toFixed(2);
+    const desc = (p.description || '').replace(/\|/g, '-').trim();
+    md += `| ${name} | ${sku} | ${price} | ${desc} |\n`;
+  }
+  md += `\n`;
+  return md;
+}
+
 function loadProducts() {
+  // 1. Check PRODUCTS.md first (for direct local editing)
+  if (fs.existsSync(PRODUCTS_MD_FILE)) {
+    try {
+      const content = fs.readFileSync(PRODUCTS_MD_FILE, 'utf8');
+      const mdProducts = parseProductsFromMarkdown(content);
+      if (mdProducts && mdProducts.length > 0) {
+        return mdProducts;
+      }
+    } catch (e) {
+      console.error('Error reading PRODUCTS.md:', e);
+    }
+  }
+
+  // 2. Check bundled PRODUCTS.md if running in another context
+  const bundledMd = path.join(__dirname, 'PRODUCTS.md');
+  if (fs.existsSync(bundledMd)) {
+    try {
+      const content = fs.readFileSync(bundledMd, 'utf8');
+      const mdProducts = parseProductsFromMarkdown(content);
+      if (mdProducts && mdProducts.length > 0) {
+        return mdProducts;
+      }
+    } catch (_) {}
+  }
+
+  // 3. Check products.json
   if (fs.existsSync(PRODUCTS_FILE)) {
     try {
       return JSON.parse(fs.readFileSync(PRODUCTS_FILE, 'utf8'));
@@ -818,7 +941,18 @@ function saveProducts(products) {
     if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf8');
   } catch (err) {
-    console.warn('Could not save products to disk:', err.message);
+    console.warn('Could not save products to JSON:', err.message);
+  }
+
+  try {
+    const mdContent = formatProductsToMarkdown(products);
+    fs.writeFileSync(PRODUCTS_MD_FILE, mdContent, 'utf8');
+    const rootMd = path.join(__dirname, 'PRODUCTS.md');
+    if (PRODUCTS_MD_FILE !== rootMd && fs.existsSync(rootMd)) {
+      try { fs.writeFileSync(rootMd, mdContent, 'utf8'); } catch (_) {}
+    }
+  } catch (err) {
+    console.warn('Could not save products to PRODUCTS.md:', err.message);
   }
 }
 
