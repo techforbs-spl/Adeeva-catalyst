@@ -1,6 +1,12 @@
 const PDFDocument = require('pdfkit');
 const fs = require('fs');
 
+// Ensure standard font definitions are bundled by Vercel NFT trace
+try {
+  require('pdfkit/standard-fonts/Helvetica');
+  require('pdfkit/standard-fonts/HelveticaBold');
+} catch (_) {}
+
 function generateInvoicePdf(data, outputPath) {
   return new Promise((resolve, reject) => {
     // Standard Letter page: 612 x 792 points, or A4
