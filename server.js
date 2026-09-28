@@ -281,6 +281,28 @@ function loadHistory() {
   return history;
 }
 
+function formatHistoryToMarkdown(history) {
+  let md = `# 📜 Adëeva Order History & 4 Files Archive\n\n`;
+  md += `> **No Database Required**: All historical orders and packages are automatically stored in \`data/history.json\` and in the \`output/\` directory (\`customer-*.xml\`, \`shipto-*.xml\`, \`order-*.xml\`, \`invoice-*.pdf\`).  \n`;
+  md += `> You can also view, search, preview, download, and re-dispatch all past orders anytime in the **"Order History & 4 Files Archive"** tab in the web interface!\n\n`;
+  md += `---\n\n`;
+  md += `### 📦 Dispatched Order Archive\n\n`;
+  md += `| Order # | Customer Name | Order Date | Items | Total ($) | 4 Files Status | FTP Upload Status | Created At |\n`;
+  md += `| :--- | :--- | :--- | :---: | :---: | :--- | :--- | :--- |\n`;
+  for (const h of history) {
+    const orderNo = h.orderNo || '-';
+    const custName = (h.customerName || h.orderData?.customerName || '-').replace(/\|/g, '-');
+    const orderDate = h.orderData?.orderDate || '-';
+    const itemsCount = h.itemCount || (h.orderData?.items ? h.orderData.items.length : 0);
+    const total = typeof h.total === 'number' ? `$${h.total.toFixed(2)}` : (h.total || '$0.00');
+    const ftpStatus = h.ftpUploaded ? `✅ Uploaded (${h.ftpTargetDir || '/for_ccm/archive'})` : `📁 Local Output Only`;
+    const created = h.createdAt ? new Date(h.createdAt).toLocaleDateString() : '-';
+    md += `| **${orderNo}** | ${custName} | ${orderDate} | ${itemsCount} | ${total} | ✅ Ready | ${ftpStatus} | ${created} |\n`;
+  }
+  md += `\n`;
+  return md;
+}
+
 function saveHistory(history) {
   try {
     const dir = path.dirname(HISTORY_FILE);
@@ -288,6 +310,14 @@ function saveHistory(history) {
     fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
   } catch (err) {
     console.warn('Could not save history to disk:', err.message);
+  }
+
+  try {
+    const mdContent = formatHistoryToMarkdown(history);
+    const historyMdPath = path.join(__dirname, 'HISTORY.md');
+    fs.writeFileSync(historyMdPath, mdContent, 'utf8');
+  } catch (err) {
+    console.warn('Could not save history to HISTORY.md:', err.message);
   }
 }
 
