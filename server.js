@@ -4,7 +4,6 @@ const os = require('os');
 const dotenv = require('dotenv');
 dotenv.config();
 const express = require('express');
-const { ZipArchive } = require('archiver');
 const { generateInvoicePdf } = require('./pdfGenerator');
 const { generateCustomerXml, generateShiptoXml, generateOrderXml } = require('./xmlGenerator');
 const { testFtpConnection, uploadFilesToFtp, listFtpDirectory, createFtpDirectory } = require('./ftpService');
@@ -484,7 +483,7 @@ app.get('/api/download/:orderNo/:type', (req, res) => {
 });
 
 // API: Download all 4 files as ZIP
-app.get('/api/download-zip/:orderNo', (req, res) => {
+app.get('/api/download-zip/:orderNo', async (req, res) => {
   const { orderNo } = req.params;
   const filenames = [
     `customer-${orderNo}.xml`,
@@ -499,18 +498,28 @@ app.get('/api/download-zip/:orderNo', (req, res) => {
     }
   }
 
-  res.setHeader('Content-Type', 'application/zip');
-  res.setHeader('Content-Disposition', `attachment; filename="Order-${orderNo}-Package.zip"`);
+  try {
+    const archiverModule = await import('archiver');
+    const ZipArchive = archiverModule.ZipArchive || archiverModule.default?.ZipArchive;
+    if (!ZipArchive) {
+      return res.status(500).json({ error: 'ZipArchive constructor could not be loaded' });
+    }
 
-  const archive = new ZipArchive({ zlib: { level: 9 } });
-  archive.on('error', (err) => res.status(500).send({ error: err.message }));
-  archive.pipe(res);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="Order-${orderNo}-Package.zip"`);
 
-  filenames.forEach(name => {
-    archive.file(path.join(OUTPUT_DIR, name), { name });
-  });
+    const archive = new ZipArchive({ zlib: { level: 9 } });
+    archive.on('error', (err) => res.status(500).send({ error: err.message }));
+    archive.pipe(res);
 
-  archive.finalize();
+    filenames.forEach(name => {
+      archive.file(path.join(OUTPUT_DIR, name), { name });
+    });
+
+    archive.finalize();
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // ==========================================

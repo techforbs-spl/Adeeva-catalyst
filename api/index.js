@@ -22,7 +22,7 @@ module.exports = (req, res) => {
 
   try {
     const matchedPath = req.headers['x-matched-path'] || req.headers['x-vercel-matched-path'] || req.headers['x-forwarded-uri'];
-    if (matchedPath && (req.url === '/api/index.js' || req.url === '/api/index' || req.url === '/api')) {
+    if (matchedPath && (req.url.startsWith('/api/index') || req.url === '/api')) {
       req.url = matchedPath;
     }
     return app(req, res);
