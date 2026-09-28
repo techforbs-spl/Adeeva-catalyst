@@ -85,11 +85,28 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Load sample data by default so the user immediately sees a working demo!
   loadSampleData();
+
+  // Initialize and load order history packages
+  await fetchOrderHistory();
+
+  // Auto switch tab if URL has #history
+  if (window.location.hash === '#history') {
+    switchMainTab('history');
+  }
 });
 
 function setupEventListeners() {
   // Add item row
   btnAddItem.addEventListener('click', () => addItemRow());
+
+  // History search input listener
+  const histSearchInput = document.getElementById('history-search-input');
+  if (histSearchInput) {
+    histSearchInput.addEventListener('input', (e) => {
+      currentHistorySearch = e.target.value;
+      renderOrderHistory();
+    });
+  }
 
   // Same as bill-to toggle
   sameAsBillToCheckbox.addEventListener('change', (e) => {
@@ -530,6 +547,7 @@ async function handleGenerate() {
     renderGeneratedFiles(result.data.files, result.data.orderNo);
     btnDownloadZip.disabled = false;
     showToast(`Successfully created 4 files for Order ${result.data.orderNo}!`, 'success');
+    fetchOrderHistory();
   } catch (err) {
     showToast(`Error: ${err.message}`, 'error');
   } finally {
@@ -585,8 +603,9 @@ function renderGeneratedFiles(files, orderNo) {
 }
 
 // Preview File in Modal
-window.previewFile = function(type, orderNo) {
+window.previewFile = async function(type, orderNo) {
   previewModalTitle.textContent = `Preview: ${type}-${orderNo}.${type === 'invoice' ? 'pdf' : 'xml'}`;
+  previewModal.classList.add('active');
   
   if (type === 'invoice') {
     previewModalBody.innerHTML = `
@@ -594,30 +613,43 @@ window.previewFile = function(type, orderNo) {
         <iframe src="/api/download/${encodeURIComponent(orderNo)}/pdf?inline=true#toolbar=1" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
       </div>
     `;
-  } else {
-    let content = '';
+    return;
+  }
+
+  let content = '';
+  if (state.currentOrderNo === orderNo && state.previews) {
     if (type === 'customer') content = state.previews.customerXml;
     else if (type === 'shipto') content = state.previews.shiptoXml;
     else if (type === 'order') content = state.previews.orderXml;
-
-    // Format XML with pretty indentation for preview
-    const formattedXml = formatXmlString(content || '');
-
-    previewModalBody.innerHTML = `
-      <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem; gap: 0.5rem;">
-        <button type="button" class="btn btn-secondary btn-sm" onclick="copyXmlToClipboard()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
-          Copy XML
-        </button>
-        <a href="/api/download/${encodeURIComponent(orderNo)}/${type}" class="btn btn-outline-primary btn-sm" download>
-          Download
-        </a>
-      </div>
-      <pre class="code-preview" id="xml-preview-content">${escapeHtml(formattedXml)}</pre>
-    `;
   }
 
-  previewModal.classList.add('active');
+  if (!content) {
+    previewModalBody.innerHTML = `<div style="text-align: center; padding: 2.5rem; color: var(--text-muted);"><span class="spinner" style="width: 20px; height: 20px; border-width: 2px;"></span> Loading ${type}-${orderNo}.xml...</div>`;
+    try {
+      const res = await fetch(`/api/download/${encodeURIComponent(orderNo)}/${type}`);
+      if (!res.ok) throw new Error('File could not be loaded from server.');
+      content = await res.text();
+    } catch (e) {
+      previewModalBody.innerHTML = `<div class="alert alert-error" style="margin: 1rem;">Failed to load file: ${e.message}</div>`;
+      return;
+    }
+  }
+
+  // Format XML with pretty indentation for preview
+  const formattedXml = formatXmlString(content || '');
+
+  previewModalBody.innerHTML = `
+    <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem; gap: 0.5rem;">
+      <button type="button" class="btn btn-secondary btn-sm" onclick="copyXmlToClipboard()">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+        Copy XML
+      </button>
+      <a href="/api/download/${encodeURIComponent(orderNo)}/${type}" class="btn btn-outline-primary btn-sm" download>
+        Download
+      </a>
+    </div>
+    <pre class="code-preview" id="xml-preview-content">${escapeHtml(formattedXml)}</pre>
+  `;
 };
 
 window.copyXmlToClipboard = function() {
@@ -855,6 +887,7 @@ async function handleFtpUpload() {
         </div>
       `).join('');
       showToast(`All 4 files sent to FTP successfully!`, 'success');
+      fetchOrderHistory();
       ftpStatusBadge.className = 'status-badge connected';
       ftpStatusBadge.textContent = 'Connected';
     } else {
@@ -880,51 +913,78 @@ async function handleFtpUpload() {
   }
 }
 
+// Populate dispatch form from data object
+function populateFormWithData(data) {
+  if (!data) return;
+
+  if (data.orderNo) document.getElementById('orderNo').value = data.orderNo;
+  if (data.orderId) document.getElementById('orderId').value = data.orderId;
+  if (data.invoiceNumber) document.getElementById('invoiceNumber').value = data.invoiceNumber;
+  if (data.shipVia) document.getElementById('shipVia').value = data.shipVia;
+  if (data.orderDate) document.getElementById('orderDate').value = data.orderDate;
+  if (data.dateWanted) document.getElementById('dateWanted').value = data.dateWanted;
+  if (data.terms !== undefined) document.getElementById('terms').value = data.terms;
+  if (data.orderNotes !== undefined) document.getElementById('orderNotes').value = data.orderNotes;
+
+  // Customer / Bill-to
+  if (data.customerNo) document.getElementById('customerNo').value = data.customerNo;
+  if (data.customerName) document.getElementById('customerName').value = data.customerName;
+  if (data.attention) document.getElementById('attention').value = data.attention;
+  if (data.address1) document.getElementById('address1').value = data.address1;
+  if (data.address2 !== undefined) document.getElementById('address2').value = data.address2;
+  if (data.city) document.getElementById('city').value = data.city;
+  if (data.provinceState) document.getElementById('provinceState').value = data.provinceState;
+  if (data.postalZip) document.getElementById('postalZip').value = data.postalZip;
+  if (data.country) document.getElementById('country').value = data.country;
+  if (data.telephone) document.getElementById('telephone').value = data.telephone;
+  if (data.fax !== undefined) document.getElementById('fax').value = data.fax;
+  if (data.email) document.getElementById('email').value = data.email;
+
+  // Ship-to
+  const isSame = data.sameAsBillTo !== false;
+  sameAsBillToCheckbox.checked = isSame;
+  if (isSame) {
+    shipToFieldsContainer.style.display = 'none';
+    shipToSyncNotice.style.display = 'block';
+  } else {
+    shipToFieldsContainer.style.display = 'block';
+    shipToSyncNotice.style.display = 'none';
+    if (data.shipToName) document.getElementById('shipToName').value = data.shipToName;
+    if (data.shipToAttention) document.getElementById('shipToAttention').value = data.shipToAttention;
+    if (data.shipToAddress1) document.getElementById('shipToAddress1').value = data.shipToAddress1;
+    if (data.shipToAddress2 !== undefined) document.getElementById('shipToAddress2').value = data.shipToAddress2;
+    if (data.shipToCity) document.getElementById('shipToCity').value = data.shipToCity;
+    if (data.shipToProvince) document.getElementById('shipToProvince').value = data.shipToProvince;
+    if (data.shipToPostal) document.getElementById('shipToPostal').value = data.shipToPostal;
+    if (data.shipToCountry) document.getElementById('shipToCountry').value = data.shipToCountry;
+    if (data.shipToPhone) document.getElementById('shipToPhone').value = data.shipToPhone;
+    if (data.shipToFax !== undefined) document.getElementById('shipToFax').value = data.shipToFax;
+    if (data.shipToEmail) document.getElementById('shipToEmail').value = data.shipToEmail;
+  }
+
+  // Populate rows
+  itemsBody.innerHTML = '';
+  if (Array.isArray(data.items) && data.items.length > 0) {
+    data.items.forEach(item => addItemRow(item));
+  } else {
+    addItemRow();
+  }
+
+  // Totals
+  document.getElementById('discount').value = (parseFloat(data.discount) || 0).toFixed(2);
+  document.getElementById('shipping').value = (parseFloat(data.shipping) || 0).toFixed(2);
+  document.getElementById('tax').value = (parseFloat(data.tax) || 0).toFixed(2);
+  document.getElementById('tax').dataset.custom = 'true';
+
+  calculateTotals();
+}
+
 // Load Demo Sample Data (ORD0042588)
 async function loadSampleData() {
   try {
     const res = await fetch('/api/sample');
     const data = await res.json();
-
-    document.getElementById('orderNo').value = data.orderNo;
-    document.getElementById('orderId').value = data.orderId;
-    document.getElementById('invoiceNumber').value = data.invoiceNumber;
-    document.getElementById('shipVia').value = data.shipVia;
-    document.getElementById('orderDate').value = data.orderDate;
-    document.getElementById('dateWanted').value = data.dateWanted;
-    document.getElementById('terms').value = data.terms;
-    document.getElementById('orderNotes').value = data.orderNotes;
-
-    // Customer
-    document.getElementById('customerNo').value = data.customerNo;
-    document.getElementById('customerName').value = data.customerName;
-    document.getElementById('attention').value = data.attention;
-    document.getElementById('address1').value = data.address1;
-    document.getElementById('address2').value = data.address2;
-    document.getElementById('city').value = data.city;
-    document.getElementById('provinceState').value = data.provinceState;
-    document.getElementById('postalZip').value = data.postalZip;
-    document.getElementById('country').value = data.country;
-    document.getElementById('telephone').value = data.telephone;
-    document.getElementById('fax').value = data.fax;
-    document.getElementById('email').value = data.email;
-
-    // Ship-to
-    sameAsBillToCheckbox.checked = true;
-    shipToFieldsContainer.style.display = 'none';
-    shipToSyncNotice.style.display = 'block';
-
-    // Populate rows
-    itemsBody.innerHTML = '';
-    (data.items || []).forEach(item => addItemRow(item));
-
-    // Totals
-    document.getElementById('discount').value = data.discount.toFixed(2);
-    document.getElementById('shipping').value = data.shipping.toFixed(2);
-    document.getElementById('tax').value = data.tax.toFixed(2);
-    document.getElementById('tax').dataset.custom = 'true';
-
-    calculateTotals();
+    populateFormWithData(data);
     showToast('Loaded demo order ORD0042588 data!', 'info');
   } catch (err) {
     showToast('Failed to load sample data: ' + err.message, 'error');
@@ -1390,5 +1450,383 @@ async function handleResetCatalog() {
     showToast('Error: ' + err.message, 'error');
   }
 }
+
+// ==========================================
+// Order History & 4 Files Package Management
+// ==========================================
+
+let historyPackages = [];
+let currentHistoryFilter = 'all';
+let currentHistorySearch = '';
+
+// Switch between Dispatch View and History Archive View
+window.switchMainTab = function(tabName) {
+  const dispatchView = document.getElementById('view-dispatch');
+  const historyView = document.getElementById('view-history');
+  const navTabDispatch = document.getElementById('nav-tab-dispatch');
+  const navTabHistory = document.getElementById('nav-tab-history');
+
+  if (tabName === 'history') {
+    if (dispatchView) dispatchView.style.display = 'none';
+    if (historyView) historyView.style.display = 'block';
+    if (navTabDispatch) navTabDispatch.classList.remove('active');
+    if (navTabHistory) navTabHistory.classList.add('active');
+    window.location.hash = 'history';
+    fetchOrderHistory();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  } else {
+    if (dispatchView) dispatchView.style.display = 'grid';
+    if (historyView) historyView.style.display = 'none';
+    if (navTabDispatch) navTabDispatch.classList.add('active');
+    if (navTabHistory) navTabHistory.classList.remove('active');
+    window.location.hash = 'order-form';
+  }
+};
+
+// Fetch order history from server
+window.fetchOrderHistory = async function() {
+  try {
+    const res = await fetch('/api/history');
+    const data = await res.json();
+    if (data.success && Array.isArray(data.history)) {
+      historyPackages = data.history;
+      updateHistoryBadges();
+      renderOrderHistory();
+    }
+  } catch (err) {
+    console.error('Error fetching order history:', err);
+  }
+};
+
+// Update badges and metric counts
+function updateHistoryBadges() {
+  const total = historyPackages.length;
+  const ftpCount = historyPackages.filter(p => p.ftpUploaded).length;
+  const localCount = total - ftpCount;
+
+  const headerBadge = document.getElementById('header-history-count');
+  const navBadge = document.getElementById('history-nav-count');
+  const metricTotal = document.getElementById('metric-total-count');
+  const metricFtp = document.getElementById('metric-ftp-count');
+  const metricPending = document.getElementById('metric-pending-count');
+  const chipAll = document.getElementById('chip-count-all');
+  const chipFtp = document.getElementById('chip-count-ftp');
+  const chipLocal = document.getElementById('chip-count-local');
+
+  if (headerBadge) headerBadge.textContent = total;
+  if (navBadge) navBadge.textContent = total;
+  if (metricTotal) metricTotal.textContent = total;
+  if (metricFtp) metricFtp.textContent = ftpCount;
+  if (metricPending) metricPending.textContent = localCount;
+  if (chipAll) chipAll.textContent = total;
+  if (chipFtp) chipFtp.textContent = ftpCount;
+  if (chipLocal) chipLocal.textContent = localCount;
+}
+
+// Filter cards by status chip
+window.filterHistoryCards = function(filterType, btnEl) {
+  currentHistoryFilter = filterType;
+  const chips = document.querySelectorAll('.history-filter-chips .filter-chip');
+  chips.forEach(c => c.classList.remove('active-chip'));
+  if (btnEl) btnEl.classList.add('active-chip');
+  renderOrderHistory();
+};
+
+// Render the historical 4-file packages
+window.renderOrderHistory = function() {
+  const container = document.getElementById('history-packages-list');
+  if (!container) return;
+
+  const query = currentHistorySearch.trim().toLowerCase();
+  let filtered = historyPackages.filter(pkg => {
+    // Status filter
+    if (currentHistoryFilter === 'ftp' && !pkg.ftpUploaded) return false;
+    if (currentHistoryFilter === 'local' && pkg.ftpUploaded) return false;
+
+    // Search filter
+    if (query) {
+      const matchOrder = pkg.orderNo && pkg.orderNo.toLowerCase().includes(query);
+      const matchCust = pkg.customerName && pkg.customerName.toLowerCase().includes(query);
+      const matchCustNo = pkg.customerNo && pkg.customerNo.toLowerCase().includes(query);
+      const matchInv = pkg.invoiceNumber && pkg.invoiceNumber.toLowerCase().includes(query);
+      if (!matchOrder && !matchCust && !matchCustNo && !matchInv) return false;
+    }
+    return true;
+  });
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="glass-panel" style="text-align: center; padding: 3.5rem 1.5rem; color: var(--text-muted); background: #ffffff;">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin-bottom: 1rem; opacity: 0.5; color: var(--adeeva-bronze);">
+          <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+        </svg>
+        <h3 style="font-size: 1.15rem; font-weight: 700; color: var(--adeeva-bronze); margin-bottom: 0.5rem;">No History Packages Found</h3>
+        <p style="font-size: 0.85rem; margin-bottom: 1.5rem; color: var(--text-secondary); max-width: 440px; margin-left: auto; margin-right: auto;">
+          ${historyPackages.length === 0 ? 'No orders have been dispatched or generated yet. Use the Order Dispatch form to create your first 4-file package!' : 'No historical order matched your current search filters.'}
+        </p>
+        <button type="button" class="btn btn-teal" onclick="switchMainTab('dispatch')">
+          Go to Order Dispatch Form
+        </button>
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = filtered.map(pkg => {
+    const orderNo = pkg.orderNo;
+    const dateFormatted = pkg.createdAt ? new Date(pkg.createdAt).toLocaleString(undefined, { 
+      year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' 
+    }) : 'Recent';
+
+    const custName = pkg.customerName || 'N/A';
+    const totalDisp = parseFloat(pkg.total) > 0 ? `$${parseFloat(pkg.total).toFixed(2)}` : '$0.00';
+    const itemsCount = pkg.itemCount ? `${pkg.itemCount} Items` : 'Items included';
+
+    const ftpBadge = pkg.ftpUploaded 
+      ? `<span class="history-ftp-badge uploaded" title="Uploaded to FTP: ${pkg.ftpUploadedAt || ''}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"/></svg> Uploaded to ${escapeHtml(pkg.ftpTargetDir || '/for_ccm/archive')}</span>`
+      : `<span class="history-ftp-badge pending" title="Package ready on disk"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg> Local Output Only</span>`;
+
+    const files = pkg.files || {};
+    const custSize = files.customerXml?.size ? `${(files.customerXml.size / 1024).toFixed(1)} KB` : 'XML File';
+    const shipSize = files.shiptoXml?.size ? `${(files.shiptoXml.size / 1024).toFixed(1)} KB` : 'XML File';
+    const ordSize = files.orderXml?.size ? `${(files.orderXml.size / 1024).toFixed(1)} KB` : 'XML File';
+    const pdfSize = files.invoicePdf?.size ? `${(files.invoicePdf.size / 1024).toFixed(1)} KB` : 'PDF File';
+
+    return `
+      <div class="history-order-card glass-panel" id="history-card-${orderNo}">
+        <!-- Card Header -->
+        <div class="history-card-header">
+          <div class="history-order-meta">
+            <span class="history-order-no-pill">${escapeHtml(orderNo)}</span>
+            <div class="history-order-submeta">
+              <span class="history-cust-name" title="${escapeHtml(custName)}">👤 <strong>${escapeHtml(custName)}</strong></span>
+              <span class="history-date-stamp">🕒 ${dateFormatted}</span>
+            </div>
+          </div>
+          <div class="history-header-right">
+            ${ftpBadge}
+            <div class="history-order-total">${totalDisp}</div>
+          </div>
+        </div>
+
+        <!-- The 4 Created Files Grid -->
+        <div class="history-4files-grid">
+          <!-- 1. Customer XML -->
+          <div class="history-file-box">
+            <div class="h-file-top">
+              <span class="h-file-tag xml">XML</span>
+              <span class="h-file-name" title="customer-${orderNo}.xml">customer-${orderNo}.xml</span>
+            </div>
+            <div class="h-file-meta">Customer Profile • ${custSize}</div>
+            <div class="h-file-actions">
+              <button type="button" class="btn btn-secondary btn-xs" onclick="previewFile('customer', '${orderNo}')" title="Preview XML Content">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview XML
+              </button>
+              <a href="/api/download/${encodeURIComponent(orderNo)}/customer" class="btn btn-outline-teal btn-xs" download title="Download Customer XML">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+            </div>
+          </div>
+
+          <!-- 2. Ship-To XML -->
+          <div class="history-file-box">
+            <div class="h-file-top">
+              <span class="h-file-tag xml">XML</span>
+              <span class="h-file-name" title="shipto-${orderNo}.xml">shipto-${orderNo}.xml</span>
+            </div>
+            <div class="h-file-meta">Shipping Address • ${shipSize}</div>
+            <div class="h-file-actions">
+              <button type="button" class="btn btn-secondary btn-xs" onclick="previewFile('shipto', '${orderNo}')" title="Preview XML Content">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview XML
+              </button>
+              <a href="/api/download/${encodeURIComponent(orderNo)}/shipto" class="btn btn-outline-teal btn-xs" download title="Download Ship-To XML">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+            </div>
+          </div>
+
+          <!-- 3. Order XML -->
+          <div class="history-file-box">
+            <div class="h-file-top">
+              <span class="h-file-tag xml">XML</span>
+              <span class="h-file-name" title="order-${orderNo}.xml">order-${orderNo}.xml</span>
+            </div>
+            <div class="h-file-meta">Order Items • ${ordSize}</div>
+            <div class="h-file-actions">
+              <button type="button" class="btn btn-secondary btn-xs" onclick="previewFile('order', '${orderNo}')" title="Preview XML Content">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview XML
+              </button>
+              <a href="/api/download/${encodeURIComponent(orderNo)}/order" class="btn btn-outline-teal btn-xs" download title="Download Order XML">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+            </div>
+          </div>
+
+          <!-- 4. Invoice PDF -->
+          <div class="history-file-box pdf-box">
+            <div class="h-file-top">
+              <span class="h-file-tag pdf">PDF</span>
+              <span class="h-file-name" title="invoice-${orderNo}.pdf">invoice-${orderNo}.pdf</span>
+            </div>
+            <div class="h-file-meta">Official Invoice • ${pdfSize}</div>
+            <div class="h-file-actions">
+              <button type="button" class="btn btn-secondary btn-xs" onclick="previewFile('invoice', '${orderNo}')" title="Preview Invoice PDF">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                Preview PDF
+              </button>
+              <a href="/api/download/${encodeURIComponent(orderNo)}/pdf" class="btn btn-outline-primary btn-xs" download title="Download Invoice PDF">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download
+              </a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card Footer Actions Bar -->
+        <div class="history-card-footer">
+          <div class="history-card-tags">
+            <span class="h-summary-pill">${itemsCount}</span>
+            ${pkg.invoiceNumber ? `<span class="h-summary-pill">Invoice: ${escapeHtml(pkg.invoiceNumber)}</span>` : ''}
+          </div>
+          <div class="history-package-actions">
+            <button type="button" class="btn btn-secondary btn-sm" onclick="loadHistoryOrderIntoForm('${orderNo}')" title="Load this order's data into the form">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+              Load into Form
+            </button>
+            <a href="/api/download-zip/${encodeURIComponent(orderNo)}" class="btn btn-secondary btn-sm" title="Download all 4 files as ZIP package" download>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download All (ZIP)
+            </a>
+            <button type="button" class="btn btn-teal btn-sm" onclick="handleHistoryFtpUpload('${orderNo}')" title="Send these 4 files to FTP">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Upload to FTP
+            </button>
+            <button type="button" class="btn btn-outline-danger btn-sm" onclick="handleDeleteHistoryOrder('${orderNo}')" title="Delete this order package from disk">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+};
+
+// Load historical order data into dispatch form
+window.loadHistoryOrderIntoForm = async function(orderNo) {
+  try {
+    const res = await fetch(`/api/history/${encodeURIComponent(orderNo)}`);
+    const data = await res.json();
+    if (!data.success || !data.item) {
+      throw new Error(data.message || 'Order details not found');
+    }
+    const orderData = data.item.orderData;
+    if (!orderData) {
+      document.getElementById('orderNo').value = orderNo;
+      switchMainTab('dispatch');
+      showToast(`Loaded Order Number ${orderNo}. Please complete form.`, 'info');
+      return;
+    }
+
+    populateFormWithData(orderData);
+    switchMainTab('dispatch');
+    showToast(`Loaded Order ${orderNo} into Dispatch Form!`, 'success');
+  } catch (err) {
+    showToast(`Failed to load order: ${err.message}`, 'error');
+  }
+};
+
+// Dispatch a historical order package directly to FTP
+window.handleHistoryFtpUpload = async function(orderNo) {
+  const targetDir = document.getElementById('ftpRemoteDir')?.value.trim() || '/for_ccm/archive';
+  const ftpConfig = getFtpConfig();
+
+  ftpModalTitle.textContent = `Dispatching Historical Order ${orderNo} to FTP`;
+  ftpStatusMessage.innerHTML = `<span class="spinner"></span> Uploading historical 4-file package to <strong>${escapeHtml(targetDir)}</strong>...`;
+  
+  ftpChecklist.innerHTML = `
+    <div class="upload-check-item">
+      <span>customer-${escapeHtml(orderNo)}.xml</span>
+      <span style="color: var(--accent-amber);">Uploading...</span>
+    </div>
+    <div class="upload-check-item">
+      <span>shipto-${escapeHtml(orderNo)}.xml</span>
+      <span style="color: var(--accent-amber);">Uploading...</span>
+    </div>
+    <div class="upload-check-item">
+      <span>order-${escapeHtml(orderNo)}.xml</span>
+      <span style="color: var(--accent-amber);">Uploading...</span>
+    </div>
+    <div class="upload-check-item">
+      <span>invoice-${escapeHtml(orderNo)}.pdf</span>
+      <span style="color: var(--accent-amber);">Uploading...</span>
+    </div>
+  `;
+  ftpModal.classList.add('active');
+
+  try {
+    const res = await fetch(`/api/history/ftp-upload/${encodeURIComponent(orderNo)}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ftpConfig, remoteDir: targetDir })
+    });
+    const result = await res.json();
+    if (result.success) {
+      ftpStatusMessage.innerHTML = `✅ <strong style="color: var(--accent-emerald);">${result.message || 'Transfer completed successfully!'}</strong> Destination: <code>${escapeHtml(result.targetDir || targetDir)}</code>`;
+      ftpChecklist.innerHTML = (result.results || []).map(r => `
+        <div class="upload-check-item success">
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="color: var(--accent-emerald); font-weight: bold;">✓</span>
+            <span>${escapeHtml(r.fileName)}</span>
+          </div>
+          <span style="color: var(--accent-emerald); font-size: 0.75rem;">${(r.sizeBytes / 1024).toFixed(1)} KB Sent</span>
+        </div>
+      `).join('');
+      showToast(`Order ${orderNo} package dispatched to FTP successfully!`, 'success');
+      fetchOrderHistory();
+    } else {
+      ftpStatusMessage.innerHTML = `⚠️ <strong style="color: var(--accent-rose);">${result.message}</strong>`;
+      if (result.results && result.results.length > 0) {
+        ftpChecklist.innerHTML = result.results.map(r => `
+          <div class="upload-check-item ${r.status === 'success' ? 'success' : 'failed'}">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-weight: bold;">${r.status === 'success' ? '✓' : '✗'}</span>
+              <span>${escapeHtml(r.fileName)}</span>
+            </div>
+            <span style="font-size: 0.75rem;">${r.status === 'success' ? 'Sent' : (r.error || 'Failed')}</span>
+          </div>
+        `).join('');
+      }
+      showToast(`FTP Error: ${result.message}`, 'error');
+    }
+  } catch (err) {
+    ftpStatusMessage.innerHTML = `❌ <strong style="color: var(--accent-rose);">Error: ${err.message}</strong>`;
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
+
+// Delete historical package and its files
+window.handleDeleteHistoryOrder = async function(orderNo) {
+  if (!confirm(`Are you sure you want to permanently delete Order ${orderNo} and its 4 files from disk?`)) {
+    return;
+  }
+  try {
+    const res = await fetch(`/api/history/${encodeURIComponent(orderNo)}`, { method: 'DELETE' });
+    const result = await res.json();
+    if (result.success) {
+      showToast(`Order ${orderNo} package removed from disk and history.`, 'info');
+      fetchOrderHistory();
+    } else {
+      showToast(result.message || 'Failed to delete package.', 'error');
+    }
+  } catch (err) {
+    showToast(`Error: ${err.message}`, 'error');
+  }
+};
 
 

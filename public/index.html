@@ -27,6 +27,10 @@
           <span>Toll Free: 1 888 251 1010</span>
         </div>
         <div class="header-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-toggle-history" onclick="switchMainTab('history')" title="View previous 4-file packages">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Order History (<span id="header-history-count">0</span>)
+          </button>
           <button type="button" class="btn btn-secondary btn-sm" id="btn-load-sample">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             Load Sample (ORD0042588)
@@ -43,10 +47,11 @@
     <div class="adeeva-nav-bar">
       <div class="adeeva-nav-content">
         <ul class="nav-links">
-          <li class="active"><a href="#order-form">Order Dispatch</a></li>
-          <li><a href="#items-table">Products & Items</a></li>
-          <li><a href="#ftp-section">FTP Gateway</a></li>
-          <li><a href="#files-card">Output Files</a></li>
+          <li id="nav-tab-dispatch" class="active"><a href="#order-form" onclick="event.preventDefault(); switchMainTab('dispatch');">Order Dispatch</a></li>
+          <li id="nav-tab-history"><a href="#history" onclick="event.preventDefault(); switchMainTab('history');">Order History & 4 Files <span class="nav-counter-badge" id="history-nav-count">0</span></a></li>
+          <li><a href="#items-table" onclick="switchMainTab('dispatch');">Products & Items</a></li>
+          <li><a href="#ftp-section" onclick="switchMainTab('dispatch');">FTP Gateway</a></li>
+          <li><a href="#files-card" onclick="switchMainTab('dispatch');">Output Files</a></li>
           <li><a href="https://www.adeeva.com/" target="_blank">Adeeva.com ↗</a></li>
         </ul>
         <div class="nav-system-status">
@@ -58,7 +63,7 @@
   </header>
 
   <!-- Main Workspace -->
-  <div class="main-container">
+  <div class="main-container" id="view-dispatch">
     
     <!-- Left Column: Order Data Form -->
     <main class="form-container">
@@ -399,6 +404,12 @@
             </ul>
           </div>
         </div>
+        <div style="margin-top: 0.85rem; padding-top: 0.75rem; border-top: 1px solid var(--border-light); text-align: center;">
+          <button type="button" class="btn btn-outline-teal btn-sm btn-block" onclick="switchMainTab('history')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            Open Order History Archive →
+          </button>
+        </div>
       </div>
 
       <!-- FTP Destination & Folder Selection Card -->
@@ -496,7 +507,75 @@
 
     </aside>
 
-  </div>
+  </div> <!-- /#view-dispatch -->
+
+  <!-- Order History & 4 Files View Container -->
+  <div class="main-container history-view-container" id="view-history" style="display: none;">
+    
+    <!-- History View Header Banner -->
+    <div class="glass-panel history-header-panel">
+      <div class="history-header-top">
+        <div class="history-title-area">
+          <div class="section-icon" style="background: rgba(115, 71, 36, 0.12); color: var(--adeeva-bronze); width: 42px; height: 42px;">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <h2 class="history-title">Order History & 4 Files Archive</h2>
+            <p class="history-subtitle">View, inspect XML & PDF contents, download packages, and re-dispatch previously created 4-file packages.</p>
+          </div>
+        </div>
+        <div class="history-top-actions">
+          <button type="button" class="btn btn-secondary btn-sm" id="btn-refresh-history" onclick="fetchOrderHistory()">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+            Refresh History
+          </button>
+          <button type="button" class="btn btn-primary btn-sm" onclick="switchMainTab('dispatch')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+            + New Order Dispatch
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Metrics Ribbon -->
+      <div class="history-metrics-row">
+        <div class="history-metric-card">
+          <span class="metric-label">Total Generated Packages</span>
+          <span class="metric-val" id="metric-total-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Uploaded to FTP</span>
+          <span class="metric-val text-success" id="metric-ftp-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Local Only / Pending</span>
+          <span class="metric-val text-warning" id="metric-pending-count">0</span>
+        </div>
+        <div class="history-metric-card">
+          <span class="metric-label">Files per Package</span>
+          <span class="metric-val" style="color: var(--adeeva-teal);">4 Files <small style="font-size: 0.7rem; font-weight: normal; color: var(--text-muted);">(3 XML + 1 PDF)</small></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- History Search & Filter Panel -->
+    <div class="glass-panel history-filter-panel">
+      <div class="history-search-input-wrapper">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="history-search-input" class="form-control" placeholder="Search orders by Order # (e.g. ORD0042588), Customer Name, or Invoice #...">
+      </div>
+      <div class="history-filter-chips">
+        <button type="button" class="filter-chip active-chip" data-filter="all" onclick="filterHistoryCards('all', this)">All Packages (<span id="chip-count-all">0</span>)</button>
+        <button type="button" class="filter-chip" data-filter="ftp" onclick="filterHistoryCards('ftp', this)">Uploaded to FTP (<span id="chip-count-ftp">0</span>)</button>
+        <button type="button" class="filter-chip" data-filter="local" onclick="filterHistoryCards('local', this)">Local Only (<span id="chip-count-local">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- History Packages Container -->
+    <div id="history-packages-list" class="history-packages-list">
+      <!-- Loaded dynamically via app.js -->
+    </div>
+
+  </div> <!-- /#view-history -->
 
   <!-- Preview Modal (For XML and PDF) -->
   <div class="modal-overlay" id="preview-modal">

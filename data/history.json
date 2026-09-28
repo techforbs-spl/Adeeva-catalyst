@@ -1,0 +1,105 @@
+[
+  {
+    "orderNo": "ORD0042588",
+    "orderId": "40139",
+    "invoiceNumber": "IN00042251",
+    "customerName": "Chagnon, Olivier",
+    "customerNo": "03507",
+    "total": 332.38999999999993,
+    "itemCount": 2,
+    "createdAt": "2026-09-28T13:47:20.117Z",
+    "updatedAt": "2026-09-28T14:19:15.894Z",
+    "ftpUploaded": false,
+    "ftpUploadedAt": null,
+    "ftpTargetDir": null,
+    "files": {
+      "customerXml": {
+        "name": "customer-ORD0042588.xml",
+        "size": 458,
+        "exists": true
+      },
+      "shiptoXml": {
+        "name": "shipto-ORD0042588.xml",
+        "size": 490,
+        "exists": true
+      },
+      "orderXml": {
+        "name": "order-ORD0042588.xml",
+        "size": 425,
+        "exists": true
+      },
+      "invoicePdf": {
+        "name": "invoice-ORD0042588.pdf",
+        "size": 3137,
+        "exists": true
+      }
+    },
+    "orderData": {
+      "orderNo": "ORD0042588",
+      "orderId": "40139",
+      "invoiceNumber": "IN00042251",
+      "shipVia": "Purolator",
+      "orderDate": "2026-09-11",
+      "dateWanted": "2026-09-11",
+      "terms": "",
+      "orderNotes": "NO SIGNATURE REQUIRED",
+      "customerNo": "03507",
+      "customerName": "Chagnon, Olivier",
+      "attention": "Chagnon, Olivier",
+      "address1": "20 Desbiens St",
+      "address2": "-, -",
+      "city": "Amqui",
+      "provinceState": "QC",
+      "postalZip": "G5J 3P1",
+      "country": "CA",
+      "telephone": "4186291244",
+      "fax": "",
+      "email": "info@axesanteoptimale.com",
+      "sameAsBillTo": true,
+      "shipToName": "Chagnon, Olivier",
+      "shipToAttention": "Chagnon, Olivier",
+      "shipToAddress1": "20 Desbiens St",
+      "shipToAddress2": "  ",
+      "shipToCity": "Amqui",
+      "shipToProvince": "QC",
+      "shipToPostal": "G5J 3P1",
+      "shipToCountry": "CA",
+      "shipToPhone": "4186291244",
+      "shipToFax": "",
+      "shipToEmail": "info@axesanteoptimale.com",
+      "companyName": "Adeeva Nutritionals Canada Inc.",
+      "items": [
+        {
+          "partNo": "KNS-000013",
+          "sku": "KNS-000013",
+          "description": "Bone Support Formula - 1 bottle (60 caplets)",
+          "productName": "Bone Support Formula - 1 bottle (60 caplets)",
+          "name": "Bone Support Formula - 1 bottle (60 caplets)",
+          "quantity": 12,
+          "shipped": 12,
+          "bo": 0,
+          "price": 20.06
+        },
+        {
+          "partNo": "KNS-000003",
+          "sku": "KNS-000003",
+          "description": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
+          "productName": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
+          "name": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
+          "quantity": 3,
+          "shipped": 3,
+          "bo": 0,
+          "price": 25.28
+        }
+      ],
+      "subtotal": 316.55999999999995,
+      "discount": 0,
+      "shipping": 0,
+      "tax": 15.83,
+      "total": 332.38999999999993,
+      "orderDateRaw": "20260911",
+      "orderDateFormatted": "11/09/2026",
+      "invoiceDate": "11/09/2026"
+    }
+  }
+]

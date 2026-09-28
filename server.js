@@ -52,9 +52,235 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 const OUTPUT_DIR = path.join(__dirname, 'output');
 const CONFIG_FILE = path.join(__dirname, 'ftp-config.json');
+const HISTORY_FILE = path.join(__dirname, 'data', 'history.json');
 
 if (!fs.existsSync(OUTPUT_DIR)) {
   fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+}
+
+// Function to return default sample order data
+function getSampleOrderData() {
+  return {
+    orderNo: 'ORD0042588',
+    orderId: '40139',
+    orderDate: '2026-09-11',
+    dateWanted: '2026-09-11',
+    invoiceNumber: 'IN00042251',
+    customerNo: '03507',
+    shipVia: 'Purolator',
+    orderNotes: 'NO SIGNATURE REQUIRED',
+    terms: '',
+    customerName: 'Chagnon, Olivier',
+    attention: 'Chagnon, Olivier',
+    address1: '20 Desbiens St',
+    address2: '-, -  ',
+    city: 'Amqui',
+    provinceState: 'QC',
+    postalZip: 'G5J 3P1',
+    country: 'CA',
+    telephone: '4186291244',
+    fax: '',
+    email: 'info@axesanteoptimale.com',
+    sameAsBillTo: true,
+    shipToName: 'Chagnon, Olivier',
+    shipToAttention: 'Chagnon, Olivier',
+    shipToAddress1: '20 Desbiens St',
+    shipToAddress2: '  ',
+    shipToCity: 'Amqui',
+    shipToProvince: 'QC',
+    shipToPostal: 'G5J 3P1',
+    shipToCountry: 'CA',
+    shipToPhone: '4186291244',
+    shipToFax: '',
+    shipToEmail: 'info@axesanteoptimale.com',
+    companyName: 'Adeeva Nutritionals Canada Inc.',
+    companyAddress1: '5500 Explorer Drive, 4th Floor,',
+    companyAddress2: 'Mississauga, ON L4W 5C7',
+    companyCountry: 'Canada',
+    companyPhone: '888-251-1010',
+    items: [
+      {
+        partNo: 'KNS-000013',
+        sku: 'KNS-000013',
+        description: 'Bone Support Formula - 1 bottle (60 caplets)',
+        productName: 'Bone Support Formula',
+        quantity: 12,
+        shipped: 12,
+        bo: 0,
+        price: 20.06,
+        priceExact: '20.0600007'
+      },
+      {
+        partNo: 'KNS-000003',
+        sku: 'KNS-000003',
+        description: 'Glucosamine Joint Formula - 1 bottle (90 capsules)',
+        productName: 'Glucosamine Joint Formula',
+        quantity: 3,
+        shipped: 3,
+        bo: 0,
+        price: 25.28,
+        priceExact: '25.2800007'
+      }
+    ],
+    discount: 0,
+    shipping: 0,
+    taxRate: 5,
+    tax: 15.83,
+    subtotal: 316.56,
+    total: 332.39
+  };
+}
+
+// History storage & discovery
+function loadHistory() {
+  let history = [];
+  if (fs.existsSync(HISTORY_FILE)) {
+    try {
+      history = JSON.parse(fs.readFileSync(HISTORY_FILE, 'utf8'));
+    } catch (e) {
+      console.error('Error reading history.json:', e);
+      history = [];
+    }
+  }
+
+  // Scan OUTPUT_DIR for any orders that exist on disk
+  if (fs.existsSync(OUTPUT_DIR)) {
+    const files = fs.readdirSync(OUTPUT_DIR);
+    const orderNos = new Set();
+    files.forEach(file => {
+      const match = file.match(/^(?:customer|shipto|order|invoice)-(.+)\.(?:xml|pdf)$/i);
+      if (match) {
+        orderNos.add(match[1]);
+      }
+    });
+
+    let modified = false;
+    orderNos.forEach(orderNo => {
+      let existing = history.find(h => h.orderNo === orderNo);
+      const custPath = path.join(OUTPUT_DIR, `customer-${orderNo}.xml`);
+      const shipPath = path.join(OUTPUT_DIR, `shipto-${orderNo}.xml`);
+      const ordPath = path.join(OUTPUT_DIR, `order-${orderNo}.xml`);
+      const pdfPath = path.join(OUTPUT_DIR, `invoice-${orderNo}.pdf`);
+
+      const custExists = fs.existsSync(custPath);
+      const shipExists = fs.existsSync(shipPath);
+      const ordExists = fs.existsSync(ordPath);
+      const pdfExists = fs.existsSync(pdfPath);
+
+      if (!existing && (custExists || shipExists || ordExists || pdfExists)) {
+        let fileTime = new Date().toISOString();
+        try {
+          const stats = fs.statSync(custExists ? custPath : (ordExists ? ordPath : pdfPath));
+          fileTime = stats.mtime.toISOString();
+        } catch (_) {}
+
+        const sampleData = orderNo === 'ORD0042588' ? getSampleOrderData() : null;
+
+        history.push({
+          orderNo,
+          orderId: sampleData ? sampleData.orderId : '',
+          invoiceNumber: sampleData ? sampleData.invoiceNumber : '',
+          customerName: sampleData ? sampleData.customerName : `Order ${orderNo}`,
+          customerNo: sampleData ? sampleData.customerNo : '',
+          total: sampleData ? sampleData.total : 0,
+          itemCount: sampleData ? sampleData.items.length : 0,
+          createdAt: fileTime,
+          updatedAt: fileTime,
+          ftpUploaded: false,
+          ftpUploadedAt: null,
+          ftpTargetDir: null,
+          files: {
+            customerXml: { name: `customer-${orderNo}.xml`, size: custExists ? fs.statSync(custPath).size : 0, exists: custExists },
+            shiptoXml: { name: `shipto-${orderNo}.xml`, size: shipExists ? fs.statSync(shipPath).size : 0, exists: shipExists },
+            orderXml: { name: `order-${orderNo}.xml`, size: ordExists ? fs.statSync(ordPath).size : 0, exists: ordExists },
+            invoicePdf: { name: `invoice-${orderNo}.pdf`, size: pdfExists ? fs.statSync(pdfPath).size : 0, exists: pdfExists }
+          },
+          orderData: sampleData
+        });
+        modified = true;
+      }
+    });
+
+    if (modified) {
+      saveHistory(history);
+    }
+  }
+
+  // Update dynamic file existence status for all entries
+  history.forEach(item => {
+    const custPath = path.join(OUTPUT_DIR, `customer-${item.orderNo}.xml`);
+    const shipPath = path.join(OUTPUT_DIR, `shipto-${item.orderNo}.xml`);
+    const ordPath = path.join(OUTPUT_DIR, `order-${item.orderNo}.xml`);
+    const pdfPath = path.join(OUTPUT_DIR, `invoice-${item.orderNo}.pdf`);
+
+    item.files = {
+      customerXml: { name: `customer-${item.orderNo}.xml`, size: fs.existsSync(custPath) ? fs.statSync(custPath).size : 0, exists: fs.existsSync(custPath) },
+      shiptoXml: { name: `shipto-${item.orderNo}.xml`, size: fs.existsSync(shipPath) ? fs.statSync(shipPath).size : 0, exists: fs.existsSync(shipPath) },
+      orderXml: { name: `order-${item.orderNo}.xml`, size: fs.existsSync(ordPath) ? fs.statSync(ordPath).size : 0, exists: fs.existsSync(ordPath) },
+      invoicePdf: { name: `invoice-${item.orderNo}.pdf`, size: fs.existsSync(pdfPath) ? fs.statSync(pdfPath).size : 0, exists: fs.existsSync(pdfPath) }
+    };
+  });
+
+  // Sort newest first
+  history.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+  return history;
+}
+
+function saveHistory(history) {
+  const dir = path.dirname(HISTORY_FILE);
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+}
+
+function recordOrderHistory(data, isFtp = false, ftpDir = '') {
+  const orderNo = (data.orderNo || 'ORD0000000').trim();
+  const history = loadHistory();
+  const existingIndex = history.findIndex(h => h.orderNo === orderNo);
+
+  const custPath = path.join(OUTPUT_DIR, `customer-${orderNo}.xml`);
+  const shipPath = path.join(OUTPUT_DIR, `shipto-${orderNo}.xml`);
+  const ordPath = path.join(OUTPUT_DIR, `order-${orderNo}.xml`);
+  const pdfPath = path.join(OUTPUT_DIR, `invoice-${orderNo}.pdf`);
+
+  const nowIso = new Date().toISOString();
+  const entry = existingIndex >= 0 ? history[existingIndex] : {
+    orderNo,
+    createdAt: nowIso
+  };
+
+  entry.orderNo = orderNo;
+  entry.orderId = data.orderId || entry.orderId || '';
+  entry.invoiceNumber = data.invoiceNumber || entry.invoiceNumber || '';
+  entry.customerName = data.customerName || entry.customerName || '';
+  entry.customerNo = data.customerNo || entry.customerNo || '';
+  entry.total = parseFloat(data.total) >= 0 ? parseFloat(data.total) : (entry.total || 0);
+  entry.itemCount = Array.isArray(data.items) ? data.items.length : (entry.itemCount || 0);
+  entry.updatedAt = nowIso;
+  if (!entry.createdAt) entry.createdAt = nowIso;
+
+  if (isFtp) {
+    entry.ftpUploaded = true;
+    entry.ftpUploadedAt = nowIso;
+    entry.ftpTargetDir = ftpDir || '/for_ccm/archive';
+  }
+
+  entry.files = {
+    customerXml: { name: `customer-${orderNo}.xml`, size: fs.existsSync(custPath) ? fs.statSync(custPath).size : 0, exists: fs.existsSync(custPath) },
+    shiptoXml: { name: `shipto-${orderNo}.xml`, size: fs.existsSync(shipPath) ? fs.statSync(shipPath).size : 0, exists: fs.existsSync(shipPath) },
+    orderXml: { name: `order-${orderNo}.xml`, size: fs.existsSync(ordPath) ? fs.statSync(ordPath).size : 0, exists: fs.existsSync(ordPath) },
+    invoicePdf: { name: `invoice-${orderNo}.pdf`, size: fs.existsSync(pdfPath) ? fs.statSync(pdfPath).size : 0, exists: fs.existsSync(pdfPath) }
+  };
+
+  entry.orderData = data;
+
+  if (existingIndex >= 0) {
+    history[existingIndex] = entry;
+  } else {
+    history.unshift(entry);
+  }
+
+  saveHistory(history);
+  return entry;
 }
 
 // Helper to format date string
@@ -130,6 +356,9 @@ async function generateAllFiles(data) {
   fs.writeFileSync(files.orderXmlPath, orderXmlContent, 'utf8');
 
   await generateInvoicePdf(data, files.invoicePdfPath);
+
+  // Record package in persistent history
+  recordOrderHistory(data, false);
 
   return {
     orderNo,
@@ -230,6 +459,119 @@ app.get('/api/download-zip/:orderNo', (req, res) => {
   archive.finalize();
 });
 
+// ==========================================
+// Order History & 4 Files Management API
+// ==========================================
+
+// API: Get All History Packages
+app.get('/api/history', (req, res) => {
+  try {
+    const history = loadHistory();
+    res.json({ success: true, count: history.length, history });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// API: Get Single History Package (including orderData for form loading)
+app.get('/api/history/:orderNo', (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const history = loadHistory();
+    const item = history.find(h => h.orderNo.toLowerCase() === orderNo.toLowerCase());
+    if (!item) {
+      return res.status(404).json({ success: false, message: `Order ${orderNo} not found in history.` });
+    }
+    res.json({ success: true, item });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// API: Delete an Order Package and its 4 files from disk & history
+app.delete('/api/history/:orderNo', (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const filenames = [
+      `customer-${orderNo}.xml`,
+      `shipto-${orderNo}.xml`,
+      `order-${orderNo}.xml`,
+      `invoice-${orderNo}.pdf`
+    ];
+
+    filenames.forEach(name => {
+      const filePath = path.join(OUTPUT_DIR, name);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) { console.error(`Error deleting ${name}:`, e); }
+      }
+    });
+
+    let history = loadHistory();
+    history = history.filter(h => h.orderNo.toLowerCase() !== orderNo.toLowerCase());
+    saveHistory(history);
+
+    res.json({ success: true, message: `Package ${orderNo} removed successfully.`, history });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// API: Upload Historical Package directly to FTP
+app.post('/api/history/ftp-upload/:orderNo', async (req, res) => {
+  try {
+    const { orderNo } = req.params;
+    const { ftpConfig, remoteDir } = req.body || {};
+    const config = getEffectiveFtpConfig({
+      ...(ftpConfig || {}),
+      remoteDir: remoteDir || (ftpConfig && ftpConfig.remoteDir) || '/for_ccm/archive'
+    });
+
+    if (!config.host) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'FTP Host is not configured. Please set FTP_HOST in your .env file or enter FTP details.' 
+      });
+    }
+
+    const filenames = [
+      `customer-${orderNo}.xml`,
+      `shipto-${orderNo}.xml`,
+      `order-${orderNo}.xml`,
+      `invoice-${orderNo}.pdf`
+    ];
+
+    const filesToUpload = [];
+    for (const fn of filenames) {
+      const fp = path.join(OUTPUT_DIR, fn);
+      if (!fs.existsSync(fp)) {
+        return res.status(404).json({ success: false, message: `Required file ${fn} was not found on disk.` });
+      }
+      filesToUpload.push({ filePath: fp });
+    }
+
+    const uploadResult = await uploadFilesToFtp(filesToUpload, config);
+
+    if (uploadResult.success) {
+      const history = loadHistory();
+      const entry = history.find(h => h.orderNo.toLowerCase() === orderNo.toLowerCase());
+      if (entry) {
+        entry.ftpUploaded = true;
+        entry.ftpUploadedAt = new Date().toISOString();
+        entry.ftpTargetDir = config.remoteDir;
+        saveHistory(history);
+      }
+    }
+
+    res.json({
+      ...uploadResult,
+      orderNo,
+      targetDir: config.remoteDir
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // API: Get FTP Configuration Status from .env
 app.get('/api/ftp/status', (req, res) => {
   const config = getEffectiveFtpConfig({});
@@ -287,6 +629,11 @@ app.post('/api/ftp/upload', async (req, res) => {
     const filesToUpload = genResult.files.map(f => ({ filePath: f.path }));
 
     const uploadResult = await uploadFilesToFtp(filesToUpload, config);
+
+    if (uploadResult.success) {
+      recordOrderHistory(orderData, true, config.remoteDir);
+    }
+
     res.json({
       ...uploadResult,
       orderNo: genResult.orderNo,
