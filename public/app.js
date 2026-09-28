@@ -64,8 +64,31 @@ const catalogModal = document.getElementById('catalog-modal');
 const btnCloseCatalogModal = document.getElementById('btn-close-catalog-modal');
 const btnDoneCatalog = document.getElementById('btn-done-catalog');
 const catalogSearchInput = document.getElementById('catalog-search-input');
-const btnResetCatalog = document.getElementById('btn-reset-catalog');
-let catalogProducts = [];
+let catalogProducts = [
+  { id: 'prod_kns_000024', name: 'Adrnl Support Formula', sku: 'KNS-000024', price: 0, description: '' },
+  { id: 'prod_kns_000002', name: 'Body Burn', sku: 'KNS-000002', price: 0, description: '' },
+  { id: 'prod_kns_000013', name: 'Bone Support Formula', sku: 'KNS-000013', price: 0, description: '' },
+  { id: 'prod_kns_000004', name: 'Cardio Essentials', sku: 'KNS-000004', price: 0, description: '' },
+  { id: 'prod_ktf_000003', name: 'Essential H.A. Serum 30ml', sku: 'KTF-000003', price: 0, description: '' },
+  { id: 'prod_ktf_000004', name: 'Essential H.A. Spray 60ml', sku: 'KTF-000004', price: 0, description: '' },
+  { id: 'prod_ktf_000013', name: 'Essential H.A. Set: Spray 60ml / Serum 30ml', sku: 'KTF-000013', price: 0, description: '' },
+  { id: 'prod_kns_000015', name: 'Flora Essentials', sku: 'KNS-000015', price: 0, description: '' },
+  { id: 'prod_kns_000003', name: 'Glucosamine Joint Formula', sku: 'KNS-000003', price: 0, description: '' },
+  { id: 'prod_kns_000012', name: 'Immuno-Detox Prime', sku: 'KNS-000012', price: 0, description: '' },
+  { id: 'prod_kns_000020', name: 'Memory Support Complex', sku: 'KNS-000020', price: 0, description: '' },
+  { id: 'prod_kns_000001', name: 'Multi Vitamin & Mineral', sku: 'KNS-000001', price: 0, description: '' },
+  { id: 'prod_kns_000016', name: 'Nature’s Essential Oils', sku: 'KNS-000016', price: 0, description: '' },
+  { id: 'prod_kns_000018', name: 'Nature’s Iron', sku: 'KNS-000018', price: 0, description: '' },
+  { id: 'prod_kns_000007', name: 'Nature’s Relief', sku: 'KNS-000007', price: 0, description: '' },
+  { id: 'prod_kns_000017', name: 'Orega-Sept Capsules', sku: 'KNS-000017', price: 0, description: '' },
+  { id: 'prod_kns_000008', name: 'Prostate 40 Plus', sku: 'KNS-000008', price: 0, description: '' },
+  { id: 'prod_kns_000022', name: 'SensaGen', sku: 'KNS-000022', price: 0, description: '' },
+  { id: 'prod_kns_000010', name: 'Sleep – E Naturals', sku: 'KNS-000010', price: 0, description: '' },
+  { id: 'prod_kns_000014', name: 'Thyro-Support Formula', sku: 'KNS-000014', price: 0, description: '' },
+  { id: 'prod_kns_000011', name: 'Ultimate GLX', sku: 'KNS-000011', price: 0, description: '' },
+  { id: 'prod_kns_000021', name: 'UT-Clear', sku: 'KNS-000021', price: 0, description: '' },
+  { id: 'prod_kns_000009', name: 'Women’s Hormonal Balance', sku: 'KNS-000009', price: 0, description: '' }
+];
 
 // Initialization
 document.addEventListener('DOMContentLoaded', async () => {
@@ -239,9 +262,11 @@ function populateShipToFromBillTo() {
 
 // Helper to render product catalog options for dropdowns
 function renderProductOptions(selectedSku = '', selectedName = '') {
+  if (!Array.isArray(catalogProducts)) return '';
   return catalogProducts.map(p => {
-    const isSelected = (selectedSku && p.sku.toUpperCase() === selectedSku.toUpperCase()) ||
-                       (selectedName && p.name.toLowerCase() === selectedName.toLowerCase());
+    if (!p || !p.name || !p.sku) return '';
+    const isSelected = (selectedSku && p.sku && p.sku.toUpperCase() === selectedSku.toUpperCase()) ||
+                       (selectedName && p.name && p.name.toLowerCase() === selectedName.toLowerCase());
     return `<option value="${p.sku}" data-name="${escapeHtml(p.name)}" data-sku="${p.sku}" data-price="${p.price || 0}" ${isSelected ? 'selected' : ''}>${escapeHtml(p.name)}</option>`;
   }).join('');
 }
@@ -1280,9 +1305,9 @@ function formatDateShort(dateStr) {
 // Fetch product catalog from server
 async function fetchCatalogProducts() {
   try {
-    const res = await fetch('/api/products');
+    const res = await fetch('/api/products?_t=' + Date.now(), { cache: 'no-store' });
     const data = await res.json();
-    if (data.success && Array.isArray(data.products)) {
+    if (data.success && Array.isArray(data.products) && data.products.length > 0) {
       catalogProducts = data.products;
       refreshRowDropdowns();
       if (catalogModal && catalogModal.classList.contains('active')) {
@@ -1296,6 +1321,7 @@ async function fetchCatalogProducts() {
 
 // Refresh all product dropdowns in the order table
 function refreshRowDropdowns() {
+  if (!itemsBody) return;
   const rows = itemsBody.querySelectorAll('tr');
   rows.forEach(tr => {
     const select = tr.querySelector('.item-product-select');
@@ -1304,11 +1330,17 @@ function refreshRowDropdowns() {
     if (select) {
       const currentSku = skuInput?.value || '';
       const currentName = customNameInput?.value || '';
+      const isCustom = select.value === '__custom__' || (!currentSku && currentName);
       select.innerHTML = `
         <option value="">-- Select Adeeva Product --</option>
         ${renderProductOptions(currentSku, currentName)}
-        <option value="__custom__">✏️ Custom / Other Product...</option>
+        <option value="__custom__" ${isCustom ? 'selected' : ''}>✏️ Custom / Other Product...</option>
       `;
+      if (currentSku) {
+        select.value = currentSku;
+      } else if (isCustom) {
+        select.value = '__custom__';
+      }
     }
   });
 }
