@@ -1,100 +1,163 @@
 [
   {
-    "id": "prod_1",
-    "name": "Glucosamine Joint Formula",
-    "sku": "KNS-000003",
-    "price": 25.28,
-    "description": "90 capsules"
+    "id": "prod_kns_000024",
+    "name": "Adrnl Support Formula",
+    "sku": "KNS-000024",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_2",
+    "id": "prod_kns_000002",
+    "name": "Body Burn",
+    "sku": "KNS-000002",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000013",
     "name": "Bone Support Formula",
     "sku": "KNS-000013",
-    "price": 20.06,
-    "description": "60 caplets"
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_3",
-    "name": "All-in-One Multi-Nutrient",
-    "sku": "KNS-000001",
-    "price": 34.95,
-    "description": "120 caplets"
-  },
-  {
-    "id": "prod_4",
-    "name": "Bio-Dim Plus Formula",
-    "sku": "KNS-000002",
-    "price": 38.5,
-    "description": "60 vegetarian capsules"
-  },
-  {
-    "id": "prod_5",
+    "id": "prod_kns_000004",
     "name": "Cardio Essentials",
     "sku": "KNS-000004",
-    "price": 29.95,
-    "description": "90 softgels"
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_6",
-    "name": "Clear Skin Formula",
-    "sku": "KNS-000005",
-    "price": 27.5,
-    "description": "60 caplets"
+    "id": "prod_ktf_000003",
+    "name": "Essential H.A. Serum 30ml",
+    "sku": "KTF-000003",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_7",
-    "name": "Flora-Bios Probiotic Formula",
-    "sku": "KNS-000006",
-    "price": 31,
-    "description": "60 capsules"
+    "id": "prod_ktf_000004",
+    "name": "Essential H.A. Spray 60ml",
+    "sku": "KTF-000004",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_8",
-    "name": "Immune Detox Formula",
-    "sku": "KNS-000007",
-    "price": 32.5,
-    "description": "60 caplets"
+    "id": "prod_ktf_000013",
+    "name": "Essential H.A. Set: Spray 60ml / Serum 30ml",
+    "sku": "KTF-000013",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_9",
-    "name": "Menopause Management Formula",
-    "sku": "KNS-000008",
-    "price": 36,
-    "description": "60 vegetarian capsules"
+    "id": "prod_kns_000015",
+    "name": "Flora Essentials",
+    "sku": "KNS-000015",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_10",
-    "name": "Nature's Essential Oils",
-    "sku": "KNS-000009",
-    "price": 26.95,
-    "description": "90 softgels"
+    "id": "prod_kns_000003",
+    "name": "Glucosamine Joint Formula",
+    "sku": "KNS-000003",
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_11",
-    "name": "Prostate 40 Plus",
-    "sku": "KNS-000010",
-    "price": 39.95,
-    "description": "60 capsules"
-  },
-  {
-    "id": "prod_12",
-    "name": "Stress Relief Formula",
-    "sku": "KNS-000011",
-    "price": 24.95,
-    "description": "60 caplets"
-  },
-  {
-    "id": "prod_13",
-    "name": "Synergy 4 Formula",
+    "id": "prod_kns_000012",
+    "name": "Immuno-Detox Prime",
     "sku": "KNS-000012",
-    "price": 33,
-    "description": "60 caplets"
+    "price": 0,
+    "description": ""
   },
   {
-    "id": "prod_14",
-    "name": "Sleep Enhancement Formula",
+    "id": "prod_kns_000020",
+    "name": "Memory Support Complex",
+    "sku": "KNS-000020",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000001",
+    "name": "Multi Vitamin & Mineral",
+    "sku": "KNS-000001",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000016",
+    "name": "Nature’s Essential Oils",
+    "sku": "KNS-000016",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000018",
+    "name": "Nature’s Iron",
+    "sku": "KNS-000018",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000007",
+    "name": "Nature’s Relief",
+    "sku": "KNS-000007",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000017",
+    "name": "Orega-Sept Capsules",
+    "sku": "KNS-000017",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000008",
+    "name": "Prostate 40 Plus",
+    "sku": "KNS-000008",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000022",
+    "name": "SensaGen",
+    "sku": "KNS-000022",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000010",
+    "name": "Sleep – E Naturals",
+    "sku": "KNS-000010",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000014",
+    "name": "Thyro-Support Formula",
     "sku": "KNS-000014",
-    "price": 28.5,
-    "description": "60 capsules"
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000011",
+    "name": "Ultimate GLX",
+    "sku": "KNS-000011",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000021",
+    "name": "UT-Clear",
+    "sku": "KNS-000021",
+    "price": 0,
+    "description": ""
+  },
+  {
+    "id": "prod_kns_000009",
+    "name": "Women’s Hormonal Balance",
+    "sku": "KNS-000009",
+    "price": 0,
+    "description": ""
   }
 ]

@@ -17,17 +17,26 @@ Simply add a new line at the bottom of the table:
 
 | Product Name | SKU |
 | :--- | :--- |
-| Glucosamine Joint Formula | KNS-000003 |
+| Adrnl Support Formula | KNS-000024 |
+| Body Burn | KNS-000002 |
 | Bone Support Formula | KNS-000013 |
-| All-in-One Multi-Nutrient | KNS-000001 |
-| Bio-Dim Plus Formula | KNS-000002 |
 | Cardio Essentials | KNS-000004 |
-| Clear Skin Formula | KNS-000005 |
-| Flora-Bios Probiotic Formula | KNS-000006 |
-| Immune Detox Formula | KNS-000007 |
-| Menopause Management Formula | KNS-000008 |
-| Nature's Essential Oils | KNS-000009 |
-| Prostate 40 Plus | KNS-000010 |
-| Stress Relief Formula | KNS-000011 |
-| Synergy 4 Formula | KNS-000012 |
-| Sleep Enhancement Formula | KNS-000014 |
+| Essential H.A. Serum 30ml | KTF-000003 |
+| Essential H.A. Spray 60ml | KTF-000004 |
+| Essential H.A. Set: Spray 60ml / Serum 30ml | KTF-000013 |
+| Flora Essentials | KNS-000015 |
+| Glucosamine Joint Formula | KNS-000003 |
+| Immuno-Detox Prime | KNS-000012 |
+| Memory Support Complex | KNS-000020 |
+| Multi Vitamin & Mineral | KNS-000001 |
+| Nature’s Essential Oils | KNS-000016 |
+| Nature’s Iron | KNS-000018 |
+| Nature’s Relief | KNS-000007 |
+| Orega-Sept Capsules | KNS-000017 |
+| Prostate 40 Plus | KNS-000008 |
+| SensaGen | KNS-000022 |
+| Sleep – E Naturals | KNS-000010 |
+| Thyro-Support Formula | KNS-000014 |
+| Ultimate GLX | KNS-000011 |
+| UT-Clear | KNS-000021 |
+| Women’s Hormonal Balance | KNS-000009 |
