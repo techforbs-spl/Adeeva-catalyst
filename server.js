@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
 const dotenv = require('dotenv');
 dotenv.config();
 const express = require('express');
@@ -7,6 +8,47 @@ const { ZipArchive } = require('archiver');
 const { generateInvoicePdf } = require('./pdfGenerator');
 const { generateCustomerXml, generateShiptoXml, generateOrderXml } = require('./xmlGenerator');
 const { testFtpConnection, uploadFilesToFtp, listFtpDirectory, createFtpDirectory } = require('./ftpService');
+
+const isVercel = !!process.env.VERCEL;
+const OUTPUT_DIR = isVercel ? path.join(os.tmpdir(), 'adeeva-output') : path.join(__dirname, 'output');
+const DATA_DIR = isVercel ? path.join(os.tmpdir(), 'adeeva-data') : path.join(__dirname, 'data');
+const CONFIG_FILE = isVercel ? path.join(os.tmpdir(), 'ftp-config.json') : path.join(__dirname, 'ftp-config.json');
+const HISTORY_FILE = path.join(DATA_DIR, 'history.json');
+const PRODUCTS_FILE = path.join(DATA_DIR, 'products.json');
+
+try {
+  if (!fs.existsSync(OUTPUT_DIR)) {
+    fs.mkdirSync(OUTPUT_DIR, { recursive: true });
+  }
+  if (!fs.existsSync(DATA_DIR)) {
+    fs.mkdirSync(DATA_DIR, { recursive: true });
+  }
+
+  // Pre-seed sample and data files into writable tempdir on Vercel
+  if (isVercel) {
+    const bundledOutput = path.join(__dirname, 'output');
+    if (fs.existsSync(bundledOutput)) {
+      fs.readdirSync(bundledOutput).forEach(fn => {
+        const target = path.join(OUTPUT_DIR, fn);
+        if (!fs.existsSync(target)) {
+          try { fs.copyFileSync(path.join(bundledOutput, fn), target); } catch (_) {}
+        }
+      });
+    }
+
+    const bundledData = path.join(__dirname, 'data');
+    if (fs.existsSync(bundledData)) {
+      fs.readdirSync(bundledData).forEach(fn => {
+        const target = path.join(DATA_DIR, fn);
+        if (!fs.existsSync(target)) {
+          try { fs.copyFileSync(path.join(bundledData, fn), target); } catch (_) {}
+        }
+      });
+    }
+  }
+} catch (err) {
+  console.warn('Initialization directory setup warning:', err.message);
+}
 
 function loadEnvDynamically() {
   const envPath = path.join(__dirname, '.env');
@@ -50,13 +92,10 @@ app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-const OUTPUT_DIR = path.join(__dirname, 'output');
-const CONFIG_FILE = path.join(__dirname, 'ftp-config.json');
-const HISTORY_FILE = path.join(__dirname, 'data', 'history.json');
-
-if (!fs.existsSync(OUTPUT_DIR)) {
-  fs.mkdirSync(OUTPUT_DIR, { recursive: true });
-}
+// Explicit root fallback for Vercel and direct hits
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 
 // Function to return default sample order data
 function getSampleOrderData() {
@@ -140,6 +179,13 @@ function loadHistory() {
     } catch (e) {
       console.error('Error reading history.json:', e);
       history = [];
+    }
+  } else {
+    const bundledHistory = path.join(__dirname, 'data', 'history.json');
+    if (fs.existsSync(bundledHistory)) {
+      try {
+        history = JSON.parse(fs.readFileSync(bundledHistory, 'utf8'));
+      } catch (_) {}
     }
   }
 
@@ -227,9 +273,13 @@ function loadHistory() {
 }
 
 function saveHistory(history) {
-  const dir = path.dirname(HISTORY_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  try {
+    const dir = path.dirname(HISTORY_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Could not save history to disk:', err.message);
+  }
 }
 
 function recordOrderHistory(data, isFtp = false, ftpDir = '') {
@@ -714,7 +764,6 @@ app.post('/api/ftp/config', (req, res) => {
 // ==========================================
 // Product Catalog & SKU Management API
 // ==========================================
-const PRODUCTS_FILE = path.join(__dirname, 'data', 'products.json');
 
 const DEFAULT_PRODUCTS = [
   { id: 'prod_1', name: 'Glucosamine Joint Formula', sku: 'KNS-000003', price: 25.28, description: '90 capsules' },
@@ -741,13 +790,23 @@ function loadProducts() {
       console.error('Error reading products.json:', e);
     }
   }
+  const bundled = path.join(__dirname, 'data', 'products.json');
+  if (fs.existsSync(bundled)) {
+    try {
+      return JSON.parse(fs.readFileSync(bundled, 'utf8'));
+    } catch (_) {}
+  }
   return DEFAULT_PRODUCTS;
 }
 
 function saveProducts(products) {
-  const dir = path.dirname(PRODUCTS_FILE);
-  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf8');
+  try {
+    const dir = path.dirname(PRODUCTS_FILE);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(PRODUCTS_FILE, JSON.stringify(products, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('Could not save products to disk:', err.message);
+  }
 }
 
 // API: Get all products
@@ -914,9 +973,13 @@ app.get('/api/sample', (req, res) => {
   res.json(sample);
 });
 
-app.listen(PORT, () => {
-  console.log(`=======================================================`);
-  console.log(`Adeeva Catalyst Software is running on:`);
-  console.log(`http://localhost:${PORT}`);
-  console.log(`=======================================================`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`=======================================================`);
+    console.log(`Adeeva Catalyst Software is running on:`);
+    console.log(`http://localhost:${PORT}`);
+    console.log(`=======================================================`);
+  });
+}
+
+module.exports = app;
