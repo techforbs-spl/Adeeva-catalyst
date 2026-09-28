@@ -865,28 +865,24 @@ function parseProductsFromMarkdown(content) {
 
 function formatProductsToMarkdown(products) {
   let md = `# 🌿 Adëeva Product & SKU Catalog\n\n`;
-  md += `> **Local Product Database**: You can add, edit, or remove products directly in the Markdown table below.  \n`;
-  md += `> Whenever you save this file, the changes will automatically be reflected in the **Section 4 Product Dropdown**, auto-select the corresponding SKU number, and update pricing in the Adeeva Catalyst software!\n\n`;
+  md += `> **Local Product Database**: You can add, edit, or delete products directly in the table below.  \n`;
+  md += `> Whenever you add a product name and SKU number here, it will automatically appear in the **Section 4 Product Dropdown** in the app, and selecting the product will auto-select its SKU number!\n\n`;
   md += `---\n\n`;
   md += `### 📝 How to Add a New Product\n`;
-  md += `Simply add a new line at the bottom of the table below:\n`;
+  md += `Simply add a new line at the bottom of the table:\n`;
   md += `\`\`\`markdown\n`;
-  md += `| Your Product Name | SKU-CODE | 29.95 | 60 capsules |\n`;
-  md += `\`\`\`\n`;
-  md += `- **Product Name**: The full name displayed in the dropdown.\n`;
-  md += `- **SKU**: The exact SKU / catalog number (e.g. \`KNS-000015\`).\n`;
-  md += `- **Price**: Unit price in CAD (numbers only, e.g. \`24.50\`).\n`;
-  md += `- **Description**: Packaging or dosage info (e.g. \`90 softgels\`).\n\n`;
+  md += `| Your Product Name | SKU-CODE |\n`;
+  md += `\`\`\`\n\n`;
   md += `---\n\n`;
-  md += `### 📦 Product Catalog Table\n\n`;
-  md += `| Product Name | SKU | Price | Description |\n`;
-  md += `| :--- | :--- | :--- | :--- |\n`;
+  md += `### 📦 Product Catalog\n\n`;
+  md += `| Product Name | SKU |\n`;
+  md += `| :--- | :--- |\n`;
   for (const p of products) {
     const name = (p.name || '').replace(/\|/g, '-').trim();
     const sku = (p.sku || '').replace(/\|/g, '-').trim();
-    const price = (typeof p.price === 'number') ? p.price.toFixed(2) : (parseFloat(p.price) || 0).toFixed(2);
-    const desc = (p.description || '').replace(/\|/g, '-').trim();
-    md += `| ${name} | ${sku} | ${price} | ${desc} |\n`;
+    if (name && sku) {
+      md += `| ${name} | ${sku} |\n`;
+    }
   }
   md += `\n`;
   return md;
