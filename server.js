@@ -765,7 +765,13 @@ app.post('/api/ftp/test', async (req, res) => {
       });
     }
     const result = await testFtpConnection(config);
-    res.json(result);
+    res.json({
+      ...result,
+      host: config.host,
+      port: config.port,
+      user: config.user,
+      targetDir: result.targetDir || config.remoteDir || '/'
+    });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

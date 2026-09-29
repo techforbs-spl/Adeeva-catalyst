@@ -18,6 +18,7 @@ async function testFtpConnection(config) {
       secureOptions: { rejectUnauthorized: false }
     });
     
+    const targetDir = config.remoteDir || '/';
     // Optionally check if remote directory exists or can be navigated to
     if (config.remoteDir && config.remoteDir !== '/' && config.remoteDir !== '.') {
       await client.ensureDir(config.remoteDir);
@@ -25,7 +26,12 @@ async function testFtpConnection(config) {
     
     const list = await client.list();
     client.close();
-    return { success: true, message: `Connected successfully! Found ${list.length} items in remote directory.` };
+    return { 
+      success: true, 
+      targetDir,
+      itemCount: list.length,
+      message: `Connected successfully! Target folder: ${targetDir} (Found ${list.length} items in remote directory).` 
+    };
   } catch (err) {
     client.close();
     return { success: false, message: err.message || 'Failed to connect to FTP server.' };

@@ -899,7 +899,11 @@ window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
       if (pulse) pulse.classList.remove('offline');
       if (hostLabel) hostLabel.textContent = `${result.host || config.host || 'ftp.catalystbiz.com'}:${result.port || 21}`;
       if (userLabel) userLabel.textContent = `Connected as '${result.user || config.user || 'adeeva'}' • .env Verified`;
-      showToast(result.message || `FTP Online! Connected as '${result.user || config.user || 'adeeva'}'`, 'success');
+      const folderPath = result.targetDir || config.remoteDir || '/for_ccm';
+      const msg = result.message && result.message.includes('Target folder') 
+        ? result.message 
+        : `Connected successfully! Target folder: ${folderPath} (Found ${result.itemCount !== undefined ? result.itemCount : 'multiple'} items in remote directory).`;
+      showToast(msg, 'success');
     } else {
       if (badge) {
         badge.className = 'status-badge disconnected';
