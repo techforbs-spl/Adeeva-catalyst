@@ -817,17 +817,30 @@ window.copyXmlToClipboard = function() {
   }
 };
 
-// Pretty print XML
+// Pretty print XML (with <?xml declaration stripped)
 function formatXmlString(xml) {
+  if (!xml) return '';
+  let cleanXml = xml.trim().replace(/^<\?xml[^>]*\?>\s*/i, '');
   let formatted = '';
-  let indent = '';
+  let indent = 0;
   const tab = '  ';
-  xml.split(/>\s*</).forEach(node => {
-    if (node.match(/^\/\w/)) indent = indent.substring(tab.length);
-    formatted += indent + '<' + node + '>\r\n';
-    if (node.match(/^<?\w[^>]*[^\/]$/)) indent += tab;
+
+  cleanXml.split(/>\s*</).forEach((node, idx) => {
+    let tag = node;
+    if (idx === 0 && tag.startsWith('<')) tag = tag.substring(1);
+    if (idx === cleanXml.split(/>\s*</).length - 1 && tag.endsWith('>')) tag = tag.substring(0, tag.length - 1);
+
+    if (tag.startsWith('/')) {
+      indent = Math.max(0, indent - 1);
+    }
+
+    formatted += tab.repeat(indent) + '<' + tag + '>\r\n';
+
+    if (!tag.startsWith('/') && !tag.endsWith('/') && !tag.includes('</')) {
+      indent++;
+    }
   });
-  return formatted.substring(1, formatted.length - 3);
+  return formatted.trim();
 }
 
 // Download all 4 files as ZIP

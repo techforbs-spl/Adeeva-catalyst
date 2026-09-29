@@ -22,7 +22,7 @@ function generateCustomerXml(data) {
   const fax = escapeXml(data.fax || '');
   const email = escapeXml(data.email || '');
 
-  return `<?xml version='1.0' encoding='UTF-8' ?><customers><customer customer_no='${customerNo}'><customer_name>${customerName}</customer_name><address><attention>${attention}</attention><address1>${address1}</address1><address2>${address2}</address2><postal_zip>${postalZip}</postal_zip><province_state>${provinceState}</province_state><country>${country}</country><city>${city}</city><telephone>${telephone}</telephone><fax>${fax}</fax><email>${email}</email></address></customer></customers>`;
+  return `<customers><customer customer_no='${customerNo}'><customer_name>${customerName}</customer_name><address><attention>${attention}</attention><address1>${address1}</address1><address2>${address2}</address2><postal_zip>${postalZip}</postal_zip><province_state>${provinceState}</province_state><country>${country}</country><city>${city}</city><telephone>${telephone}</telephone><fax>${fax}</fax><email>${email}</email></address></customer></customers>`;
 }
 
 function generateShiptoXml(data) {
@@ -41,7 +41,7 @@ function generateShiptoXml(data) {
   const fax = escapeXml(data.shipToFax || data.fax || '');
   const email = escapeXml(data.shipToEmail || data.email || '');
 
-  return `<?xml version='1.0' encoding='UTF-8' ?><shiptos><shipto customer_no='${customerNo}' shipto_no='${shiptoNo}' shipto_via='${shiptoVia}'><shipto_name>${shiptoName}</shipto_name><address><attention>${attention}</attention><address1>${address1}</address1><address2>${address2}</address2><postal_zip>${postalZip}</postal_zip><province_state>${provinceState}</province_state><country>${country}</country><city>${city}</city><telephone>${telephone}</telephone><fax>${fax}</fax><email>${email}</email></address></shipto></shiptos>`;
+  return `<shiptos><shipto customer_no='${customerNo}' shipto_no='${shiptoNo}' shipto_via='${shiptoVia}'><shipto_name>${shiptoName}</shipto_name><address><attention>${attention}</attention><address1>${address1}</address1><address2>${address2}</address2><postal_zip>${postalZip}</postal_zip><province_state>${provinceState}</province_state><country>${country}</country><city>${city}</city><telephone>${telephone}</telephone><fax>${fax}</fax><email>${email}</email></address></shipto></shiptos>`;
 }
 
 function generateOrderXml(data) {
@@ -60,7 +60,7 @@ function generateOrderXml(data) {
     return `<item part_no='${partNo}'><quantity>${qty}</quantity><price>${priceStr}</price></item>`;
   }).join('');
 
-  return `<?xml version='1.0' encoding='UTF-8' ?><orders><order order_id='${orderId}'><bill_to>${billTo}</bill_to><ship_to>${shipTo}</ship_to>${itemsXml}<date_wanted>${dateWanted}</date_wanted><order_date>${orderDate}</order_date><order_notes>${orderNotes}</order_notes></order></orders>`;
+  return `<orders><order order_id='${orderId}'><bill_to>${billTo}</bill_to><ship_to>${shipTo}</ship_to>${itemsXml}<date_wanted>${dateWanted}</date_wanted><order_date>${orderDate}</order_date><order_notes>${orderNotes}</order_notes></order></orders>`;
 }
 
 module.exports = {
