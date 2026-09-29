@@ -570,6 +570,10 @@ app.get('/api/download/:orderNo/:type', async (req, res) => {
   }
 
   res.setHeader('Content-Type', contentType);
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+
   // If previewing PDF inline, don't force attachment download
   if ((type === 'pdf' || type === 'invoice') && req.query.inline === 'true') {
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);

@@ -53,7 +53,25 @@
       ],
       "orderDateRaw": "20260929",
       "orderDateFormatted": "29/09/2026",
-      "invoiceDate": "29/09/2026"
+      "invoiceDate": "29/09/2026",
+      "attention": "Lapena, Carlos",
+      "address1": "15158 Roper Avenue",
+      "address2": "",
+      "city": "White Rock",
+      "provinceState": "BC",
+      "postalZip": "V4B 2E7",
+      "country": "CA",
+      "telephone": "604 531-9700",
+      "email": "chiroc@telus.net",
+      "sameAsBillTo": true,
+      "shipToName": "Lapena, Carlos",
+      "shipToAddress1": "15158 Roper Avenue",
+      "shipToAddress2": "",
+      "shipToCity": "White Rock",
+      "shipToProvince": "BC",
+      "shipToPostal": "V4B 2E7",
+      "shipToCountry": "CA",
+      "shipToPhone": "604 531-9700"
     }
   },
   {

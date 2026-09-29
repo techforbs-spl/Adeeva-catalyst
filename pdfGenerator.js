@@ -62,25 +62,34 @@ function generateInvoicePdf(data, outputPath) {
     doc.text('SHIP TO :', rightBoxX + 6, boxTop + 5);
 
     // Bill To & Ship To resolution
-    const billName = (data.billToName || data.customerName || '').trim();
-    const billAddress1 = (data.billToAddress1 || data.address1 || '').trim();
-    let billAddress2 = (data.billToAddress2 !== undefined ? data.billToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim();
+    const billName = (data.billToName || data.customerName || data.customer_name || data.attention || '').trim();
+    const billAddress1 = (data.billToAddress1 || data.address1 || data.address || data.street || data.address_1 || '').trim();
+    let billAddress2 = (data.billToAddress2 !== undefined ? data.billToAddress2 : (data.address2 !== undefined ? data.address2 : (data.address_2 || ''))).trim();
     if (billAddress2 === '-, -' || billAddress2 === '-') billAddress2 = '';
     const billCity = (data.billToCity || data.city || '').trim();
-    const billProvince = (data.billToProvince || data.provinceState || '').trim();
-    const billPostal = (data.billToPostal || data.postalZip || '').trim();
+    const billProvince = (data.billToProvince || data.provinceState || data.province_state || data.province || data.state || '').trim();
+    const billPostal = (data.billToPostal || data.postalZip || data.postal_zip || data.zip || '').trim();
     const billCountry = (data.billToCountry || data.country || 'CA').trim();
-    const billPhone = (data.billToPhone || data.telephone || '').trim();
+    const billPhone = (data.billToPhone || data.telephone || data.phone || '').trim();
 
-    const shipName = (data.shipToName || billName).trim();
-    const shipAddress1 = (data.shipToAddress1 || billAddress1).trim();
-    let shipAddress2 = (data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim();
-    if (shipAddress2 === '-, -' || shipAddress2 === '-') shipAddress2 = '';
-    const shipCity = (data.shipToCity || billCity).trim();
-    const shipProvince = (data.shipToProvince || billProvince).trim();
-    const shipPostal = (data.shipToPostal || billPostal).trim();
-    const shipCountry = (data.shipToCountry || billCountry || 'CA').trim();
-    const shipPhone = (data.shipToPhone || billPhone).trim();
+    const rawShipName = (data.shipToName || data.shipto_name || '').trim();
+    const rawShipAddress1 = (data.shipToAddress1 || data.shipto_address1 || '').trim();
+    let rawShipAddress2 = (data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.shipto_address2 !== undefined ? data.shipto_address2 : '')).trim();
+    if (rawShipAddress2 === '-, -' || rawShipAddress2 === '-') rawShipAddress2 = '';
+    const rawShipCity = (data.shipToCity || data.shipto_city || '').trim();
+    const rawShipProvince = (data.shipToProvince || data.shipto_province || data.shipToProvinceState || '').trim();
+    const rawShipPostal = (data.shipToPostal || data.shipto_postal || data.shipToPostalZip || '').trim();
+    const rawShipCountry = (data.shipToCountry || data.shipto_country || '').trim();
+    const rawShipPhone = (data.shipToPhone || data.shipto_phone || '').trim();
+
+    const shipName = rawShipName || billName;
+    const shipAddress1 = rawShipAddress1 || billAddress1;
+    const shipAddress2 = rawShipAddress2 || billAddress2;
+    const shipCity = rawShipCity || billCity;
+    const shipProvince = rawShipProvince || billProvince;
+    const shipPostal = rawShipPostal || billPostal;
+    const shipCountry = rawShipCountry || billCountry || 'CA';
+    const shipPhone = rawShipPhone || billPhone;
 
     // Check if billing address is different from shipping address
     const cleanStr = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -88,7 +97,14 @@ function generateInvoicePdf(data, outputPath) {
     if (data.sameAsBillTo === true) {
       showBillTo = false;
     } else if (data.sameAsBillTo === false) {
-      showBillTo = true;
+      showBillTo = Boolean(billAddress1 || billCity) && (
+        cleanStr(billName) !== cleanStr(shipName) ||
+        cleanStr(billAddress1) !== cleanStr(shipAddress1) ||
+        cleanStr(billAddress2) !== cleanStr(shipAddress2) ||
+        cleanStr(billCity) !== cleanStr(shipCity) ||
+        cleanStr(billProvince) !== cleanStr(shipProvince) ||
+        cleanStr(billPostal) !== cleanStr(shipPostal)
+      );
     } else if (billAddress1 || billCity || billName) {
       // If sameAsBillTo flag not explicitly provided, check if any address line differs
       showBillTo = (
