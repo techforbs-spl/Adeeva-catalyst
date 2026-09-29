@@ -132,6 +132,11 @@ function generateInvoicePdf(data, outputPath) {
         doc.text(billPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
         billY += billLineH;
       }
+    } else {
+      // Both addresses are the same: render as shown in 2nd image (, , and CA)
+      doc.font('Helvetica').fontSize(9.5);
+      doc.text(', ,', leftBoxX + 6, boxTop + 48);
+      doc.text(billCountry || 'CA', leftBoxX + 6, boxTop + 62);
     }
 
     // Ship To Content
