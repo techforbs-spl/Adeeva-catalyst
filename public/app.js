@@ -19,7 +19,6 @@ const btnLoadSample = document.getElementById('btn-load-sample');
 const btnClearForm = document.getElementById('btn-clear-form');
 
 const btnTestFtp = document.getElementById('btn-test-ftp');
-const btnSaveFtp = document.getElementById('btn-save-ftp');
 const ftpStatusBadge = document.getElementById('ftp-status-badge');
 
 const sameAsBillToCheckbox = document.getElementById('sameAsBillTo');
@@ -63,6 +62,44 @@ const btnOpenCatalog = document.getElementById('btn-open-catalog');
 const catalogModal = document.getElementById('catalog-modal');
 const btnCloseCatalogModal = document.getElementById('btn-close-catalog-modal');
 const btnDoneCatalog = document.getElementById('btn-done-catalog');
+
+// ==========================================
+// Global Modal Controls (Fail-Safe & Accessible)
+// ==========================================
+window.closePreviewModal = function() {
+  const modal = document.getElementById('preview-modal');
+  if (modal) modal.classList.remove('active');
+  const iframe = modal?.querySelector('iframe');
+  if (iframe) iframe.src = 'about:blank';
+};
+
+window.closeSuccessModal = function() {
+  const modal = document.getElementById('success-files-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+window.closeFtpModal = function() {
+  const modal = document.getElementById('ftp-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+window.closeFtpBrowserModal = function() {
+  const modal = document.getElementById('ftp-browser-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+window.closeCatalogModal = function() {
+  const modal = document.getElementById('catalog-modal');
+  if (modal) modal.classList.remove('active');
+};
+
+window.closeAllModals = function() {
+  document.querySelectorAll('.modal-overlay.active').forEach(m => {
+    m.classList.remove('active');
+    const iframe = m.querySelector('iframe');
+    if (iframe) iframe.src = 'about:blank';
+  });
+};
 const catalogSearchInput = document.getElementById('catalog-search-input');
 let catalogProducts = [
   { id: 'prod_kns_000024', name: 'Adrnl Support Formula', sku: 'KNS-000024', price: 0, description: '' },
@@ -150,26 +187,59 @@ function setupEventListeners() {
   });
 
   // Action buttons
-  btnLoadSample.addEventListener('click', loadSampleData);
-  btnClearForm.addEventListener('click', clearForm);
-  btnGenerate.addEventListener('click', handleGenerate);
-  btnUploadFtp.addEventListener('click', handleFtpUpload);
-  btnDownloadZip.addEventListener('click', handleDownloadZip);
+  if (btnLoadSample) btnLoadSample.addEventListener('click', loadSampleData);
+  if (btnClearForm) btnClearForm.addEventListener('click', clearForm);
+  if (btnGenerate) btnGenerate.addEventListener('click', handleGenerate);
+  if (btnUploadFtp) btnUploadFtp.addEventListener('click', handleFtpUpload);
+  if (btnDownloadZip) btnDownloadZip.addEventListener('click', handleDownloadZip);
 
   // FTP buttons
-  btnTestFtp.addEventListener('click', handleTestFtp);
-  btnSaveFtp.addEventListener('click', handleSaveFtp);
+  if (btnTestFtp) btnTestFtp.addEventListener('click', handleTestFtp);
 
   // Modals
-  btnClosePreview.addEventListener('click', () => previewModal.classList.remove('active'));
-  previewModal.addEventListener('click', (e) => {
-    if (e.target === previewModal) previewModal.classList.remove('active');
+  if (btnClosePreview) {
+    btnClosePreview.addEventListener('click', (e) => {
+      e.preventDefault();
+      closePreviewModal();
+    });
+  }
+  if (previewModal) {
+    previewModal.addEventListener('click', (e) => {
+      if (e.target === previewModal) closePreviewModal();
+    });
+  }
+
+  if (btnCloseFtpModal) {
+    btnCloseFtpModal.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeFtpModal();
+    });
+  }
+  if (btnFtpDone) {
+    btnFtpDone.addEventListener('click', (e) => {
+      e.preventDefault();
+      closeFtpModal();
+    });
+  }
+  if (ftpModal) {
+    ftpModal.addEventListener('click', (e) => {
+      if (e.target === ftpModal) closeFtpModal();
+    });
+  }
+
+  // Universal Modal Dismiss Handlers (Background click & Escape key)
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      window.closeAllModals();
+    }
   });
 
-  btnCloseFtpModal.addEventListener('click', () => ftpModal.classList.remove('active'));
-  btnFtpDone.addEventListener('click', () => ftpModal.classList.remove('active'));
-  ftpModal.addEventListener('click', (e) => {
-    if (e.target === ftpModal) ftpModal.classList.remove('active');
+  document.addEventListener('click', (e) => {
+    if (e.target && e.target.classList && e.target.classList.contains('modal-overlay')) {
+      e.target.classList.remove('active');
+      const iframe = e.target.querySelector('iframe');
+      if (iframe) iframe.src = 'about:blank';
+    }
   });
 
   // FTP Explorer Modal Events

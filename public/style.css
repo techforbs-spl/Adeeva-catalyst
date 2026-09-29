@@ -960,13 +960,32 @@ header.app-header {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   cursor: pointer;
   line-height: 1;
+  padding: 0.25rem 0.6rem;
+  min-width: 36px;
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  transition: color 0.15s ease, background 0.15s ease, transform 0.1s ease;
+  z-index: 2;
+  position: relative;
 }
 
 .btn-close-modal:hover {
   color: var(--text-dark);
+  background: rgba(0, 0, 0, 0.07);
+}
+
+.btn-close-modal:active {
+  transform: scale(0.95);
+}
+
+#preview-modal {
+  z-index: 1100;
 }
 
 .modal-body {
