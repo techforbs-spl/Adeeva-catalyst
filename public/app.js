@@ -194,7 +194,9 @@ function setupEventListeners() {
   if (btnDownloadZip) btnDownloadZip.addEventListener('click', handleDownloadZip);
 
   // FTP buttons
-  if (btnTestFtp) btnTestFtp.addEventListener('click', handleTestFtp);
+  const btnCheckFtpStatus = document.getElementById('btn-check-ftp-status');
+  if (btnCheckFtpStatus) btnCheckFtpStatus.addEventListener('click', () => window.checkFtpStatus(btnCheckFtpStatus));
+  if (btnTestFtp) btnTestFtp.addEventListener('click', () => window.checkFtpStatus(btnTestFtp));
 
   // Modals
   if (btnClosePreview) {
@@ -857,19 +859,28 @@ window.setQuickFolder = function(folderPath) {
 };
 
 // Test FTP Connection (using .env or overrides)
-async function handleTestFtp() {
-  const config = getFtpConfig();
-  const btn = document.getElementById('btn-test-ftp');
+window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
+  const config = typeof getFtpConfig === 'function' ? getFtpConfig() : {};
+  const btnHeader = clickedBtn || document.getElementById('btn-check-ftp-status');
+  const btnSidebar = document.getElementById('btn-test-ftp');
   const badge = document.getElementById('ftp-status-badge');
   const pulse = document.getElementById('ftp-pulse-indicator');
   const hostLabel = document.getElementById('ftp-env-host-label');
   const userLabel = document.getElementById('ftp-env-user-label');
 
-  badge.className = 'status-badge testing';
-  badge.textContent = 'Testing...';
-  if (btn) {
-    btn.disabled = true;
-    btn.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:4px;"></span> Testing...`;
+  if (badge) {
+    badge.className = 'status-badge testing';
+    badge.textContent = 'Testing...';
+  }
+
+  const origHeaderHtml = btnHeader ? btnHeader.innerHTML : '';
+  if (btnHeader) {
+    btnHeader.disabled = true;
+    btnHeader.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:6px;"></span> Checking FTP...`;
+  }
+  if (btnSidebar) {
+    btnSidebar.disabled = true;
+    btnSidebar.innerHTML = `<span class="spinner" style="width:12px;height:12px;border-width:2px;margin-right:4px;"></span> Testing...`;
   }
 
   try {
@@ -881,33 +892,45 @@ async function handleTestFtp() {
     const result = await res.json();
 
     if (result.success) {
-      badge.className = 'status-badge connected';
-      badge.textContent = 'Online & Ready';
+      if (badge) {
+        badge.className = 'status-badge connected';
+        badge.textContent = 'Online & Ready';
+      }
       if (pulse) pulse.classList.remove('offline');
       if (hostLabel) hostLabel.textContent = `${result.host || config.host || 'ftp.catalystbiz.com'}:${result.port || 21}`;
       if (userLabel) userLabel.textContent = `Connected as '${result.user || config.user || 'adeeva'}' • .env Verified`;
-      showToast(result.message || 'FTP Connection Successful!', 'success');
+      showToast(result.message || `FTP Online! Connected as '${result.user || config.user || 'adeeva'}'`, 'success');
     } else {
-      badge.className = 'status-badge disconnected';
-      badge.textContent = 'Failed';
+      if (badge) {
+        badge.className = 'status-badge disconnected';
+        badge.textContent = 'Failed';
+      }
       if (pulse) pulse.classList.add('offline');
-      showToast(`FTP Error: ${result.message}`, 'error');
+      showToast(`FTP Error: ${result.message || 'Connection failed'}`, 'error');
     }
   } catch (err) {
-    badge.className = 'status-badge disconnected';
-    badge.textContent = 'Failed';
+    if (badge) {
+      badge.className = 'status-badge disconnected';
+      badge.textContent = 'Failed';
+    }
     if (pulse) pulse.classList.add('offline');
     showToast(`Network Error: ${err.message}`, 'error');
   } finally {
-    if (btn) {
-      btn.disabled = false;
-      btn.innerHTML = `
+    if (btnHeader) {
+      btnHeader.disabled = false;
+      btnHeader.innerHTML = origHeaderHtml;
+    }
+    if (btnSidebar) {
+      btnSidebar.disabled = false;
+      btnSidebar.innerHTML = `
         <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
         Test Connection
       `;
     }
   }
-}
+};
+
+window.handleTestFtp = window.checkFtpStatus;
 
 // Load FTP Configuration status from server .env
 async function loadFtpConfig() {
