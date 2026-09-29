@@ -588,7 +588,7 @@ function getFormData() {
     shipToName: sameAsBillTo ? getVal('customerName') : (getVal('shipToName') || getVal('customerName')),
     shipToAttention: sameAsBillTo ? getVal('attention') : (getVal('shipToAttention') || getVal('attention')),
     shipToAddress1: sameAsBillTo ? getVal('address1') : (getVal('shipToAddress1') || getVal('address1')),
-    shipToAddress2: sameAsBillTo ? '  ' : getVal('shipToAddress2'),
+    shipToAddress2: sameAsBillTo ? (getVal('address2') || '') : getVal('shipToAddress2'),
     shipToCity: sameAsBillTo ? getVal('city') : (getVal('shipToCity') || getVal('city')),
     shipToProvince: sameAsBillTo ? getVal('provinceState') : (getVal('shipToProvince') || getVal('provinceState')),
     shipToPostal: sameAsBillTo ? getVal('postalZip') : (getVal('shipToPostal') || getVal('postalZip')),
@@ -840,6 +840,12 @@ function formatXmlString(xml) {
       indent++;
     }
   });
+
+  // Collapse tags where opening and closing were split across lines (like <address2>\r\n</address2>)
+  formatted = formatted.replace(/<([a-zA-Z0-9_-]+)>([ \t]*)\r?\n\s*<\/\1>/g, (m, tag, sp) => {
+    return '<' + tag + '>' + sp.trim() + '</' + tag + '>';
+  });
+
   return formatted.trim();
 }
 

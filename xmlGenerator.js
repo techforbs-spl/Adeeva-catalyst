@@ -32,7 +32,7 @@ function generateShiptoXml(data) {
   const shiptoName = escapeXml(data.shipToName || data.customerName || data.billToName || '');
   const attention = escapeXml(data.shipToAttention || data.attention || shiptoName);
   const address1 = escapeXml(data.shipToAddress1 || data.address1 || data.billToAddress1 || '');
-  const address2 = escapeXml(data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '  '));
+  const address2 = escapeXml((data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim());
   const postalZip = escapeXml(data.shipToPostal || data.postalZip || data.billToPostal || '');
   const provinceState = escapeXml(data.shipToProvince || data.provinceState || data.billToProvince || '');
   const country = escapeXml(data.shipToCountry || data.country || data.billToCountry || 'CA');
