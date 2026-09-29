@@ -615,6 +615,11 @@ header.app-header {
 /* =========================================
    Refined FTP Destination Card Styles
 ========================================= */
+#ftp-section,
+.ftp-card {
+  display: none !important;
+}
+
 .ftp-server-info-box {
   background: #f8fafc;
   border: 1px solid var(--border-light);
