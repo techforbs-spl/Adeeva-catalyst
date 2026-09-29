@@ -15,17 +15,17 @@
     "files": {
       "customerXml": {
         "name": "customer-ORD0042603.xml",
-        "size": 393,
+        "size": 349,
         "exists": true
       },
       "shiptoXml": {
         "name": "shipto-ORD0042603.xml",
-        "size": 423,
+        "size": 377,
         "exists": true
       },
       "orderXml": {
         "name": "order-ORD0042603.xml",
-        "size": 317,
+        "size": 282,
         "exists": true
       },
       "invoicePdf": {
@@ -65,29 +65,29 @@
     "total": 332.38999999999993,
     "itemCount": 2,
     "createdAt": "2026-09-28T13:47:20.117Z",
-    "updatedAt": "2026-09-28T14:19:15.894Z",
+    "updatedAt": "2026-09-29T06:56:03.725Z",
     "ftpUploaded": false,
     "ftpUploadedAt": null,
     "ftpTargetDir": null,
     "files": {
       "customerXml": {
         "name": "customer-ORD0042588.xml",
-        "size": 458,
+        "size": 414,
         "exists": true
       },
       "shiptoXml": {
         "name": "shipto-ORD0042588.xml",
-        "size": 490,
+        "size": 448,
         "exists": true
       },
       "orderXml": {
         "name": "order-ORD0042588.xml",
-        "size": 425,
+        "size": 385,
         "exists": true
       },
       "invoicePdf": {
         "name": "invoice-ORD0042588.pdf",
-        "size": 3137,
+        "size": 3092,
         "exists": true
       }
     },
@@ -116,7 +116,7 @@
       "shipToName": "Chagnon, Olivier",
       "shipToAttention": "Chagnon, Olivier",
       "shipToAddress1": "20 Desbiens St",
-      "shipToAddress2": "  ",
+      "shipToAddress2": "-, -",
       "shipToCity": "Amqui",
       "shipToProvince": "QC",
       "shipToPostal": "G5J 3P1",
@@ -129,9 +129,9 @@
         {
           "partNo": "KNS-000013",
           "sku": "KNS-000013",
-          "description": "Bone Support Formula - 1 bottle (60 caplets)",
-          "productName": "Bone Support Formula - 1 bottle (60 caplets)",
-          "name": "Bone Support Formula - 1 bottle (60 caplets)",
+          "description": "Bone Support Formula",
+          "productName": "Bone Support Formula",
+          "name": "Bone Support Formula",
           "quantity": 12,
           "shipped": 12,
           "bo": 0,
@@ -140,9 +140,9 @@
         {
           "partNo": "KNS-000003",
           "sku": "KNS-000003",
-          "description": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
-          "productName": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
-          "name": "Glucosamine Joint Formula - 1 bottle (90 capsules)",
+          "description": "Glucosamine Joint Formula",
+          "productName": "Glucosamine Joint Formula",
+          "name": "Glucosamine Joint Formula",
           "quantity": 3,
           "shipped": 3,
           "bo": 0,
