@@ -82,77 +82,76 @@ function generateInvoicePdf(data, outputPath) {
     const rawShipCountry = (data.shipToCountry || data.shipto_country || '').trim();
     const rawShipPhone = (data.shipToPhone || data.shipto_phone || '').trim();
 
-    const shipName = rawShipName || billName;
-    const shipAddress1 = rawShipAddress1 || billAddress1;
-    const shipAddress2 = rawShipAddress2 || billAddress2;
-    const shipCity = rawShipCity || billCity;
-    const shipProvince = rawShipProvince || billProvince;
-    const shipPostal = rawShipPostal || billPostal;
-    const shipCountry = rawShipCountry || billCountry || 'CA';
-    const shipPhone = rawShipPhone || billPhone;
-
-    // Check if billing address is different from shipping address
+    // Determine whether billing and shipping addresses are different
     const cleanStr = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    let showBillTo = false;
-    if (data.sameAsBillTo === true) {
-      showBillTo = false;
-    } else if (data.sameAsBillTo === false) {
-      showBillTo = Boolean(billAddress1 || billCity) && (
-        cleanStr(billName) !== cleanStr(shipName) ||
-        cleanStr(billAddress1) !== cleanStr(shipAddress1) ||
-        cleanStr(billAddress2) !== cleanStr(shipAddress2) ||
-        cleanStr(billCity) !== cleanStr(shipCity) ||
-        cleanStr(billProvince) !== cleanStr(shipProvince) ||
-        cleanStr(billPostal) !== cleanStr(shipPostal)
-      );
-    } else if (billAddress1 || billCity || billName) {
-      // If sameAsBillTo flag not explicitly provided, check if any address line differs
-      showBillTo = (
-        cleanStr(billName) !== cleanStr(shipName) ||
-        cleanStr(billAddress1) !== cleanStr(shipAddress1) ||
-        cleanStr(billAddress2) !== cleanStr(shipAddress2) ||
-        cleanStr(billCity) !== cleanStr(shipCity) ||
-        cleanStr(billProvince) !== cleanStr(shipProvince) ||
-        cleanStr(billPostal) !== cleanStr(shipPostal)
-      );
+    const hasDifferentAddress = Boolean(
+      (rawShipAddress1 && billAddress1 && cleanStr(rawShipAddress1) !== cleanStr(billAddress1)) ||
+      (rawShipCity && billCity && cleanStr(rawShipCity) !== cleanStr(billCity)) ||
+      (rawShipPostal && billPostal && cleanStr(rawShipPostal) !== cleanStr(billPostal)) ||
+      (rawShipName && billName && cleanStr(rawShipName) !== cleanStr(billName))
+    );
+
+    const isDifferent = (data.sameAsBillTo === false) || (data.sameAsBillTo === undefined && hasDifferentAddress);
+
+    let finalShipName = rawShipName || billName;
+    let finalShipAddress1 = rawShipAddress1 || billAddress1;
+    let finalShipAddress2 = rawShipAddress2 || billAddress2;
+    let finalShipCity = rawShipCity || billCity;
+    let finalShipProvince = rawShipProvince || billProvince;
+    let finalShipPostal = rawShipPostal || billPostal;
+    let finalShipCountry = rawShipCountry || billCountry || 'CA';
+    let finalShipPhone = rawShipPhone || billPhone;
+
+    let finalBillName = billName || finalShipName;
+    let finalBillAddress1 = billAddress1 || finalShipAddress1;
+    let finalBillAddress2 = billAddress2 || finalShipAddress2;
+    let finalBillCity = billCity || finalShipCity;
+    let finalBillProvince = billProvince || finalShipProvince;
+    let finalBillPostal = billPostal || finalShipPostal;
+    let finalBillCountry = billCountry || finalShipCountry || 'CA';
+    let finalBillPhone = billPhone || finalShipPhone;
+
+    if (!isDifferent) {
+      // Both addresses are the same: ensure both sides display the full identical address
+      finalBillName = finalShipName = billName || rawShipName;
+      finalBillAddress1 = finalShipAddress1 = billAddress1 || rawShipAddress1;
+      finalBillAddress2 = finalShipAddress2 = billAddress2 || rawShipAddress2;
+      finalBillCity = finalShipCity = billCity || rawShipCity;
+      finalBillProvince = finalShipProvince = billProvince || rawShipProvince;
+      finalBillPostal = finalShipPostal = billPostal || rawShipPostal;
+      finalBillCountry = finalShipCountry = billCountry || rawShipCountry || 'CA';
+      finalBillPhone = finalShipPhone = billPhone || rawShipPhone;
     }
 
-    // Bill To Content (only rendered if different from ship-to address)
-    if (showBillTo) {
-      doc.font('Helvetica').fontSize(9);
-      let billY = boxTop + 18;
-      const billLineH = 11.5;
+    // Bill To Content
+    doc.font('Helvetica').fontSize(9);
+    let billY = boxTop + 18;
+    const billLineH = 11.5;
 
-      if (billName) {
-        doc.text(billName, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-      if (billAddress1) {
-        doc.text(billAddress1, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-      if (billAddress2) {
-        doc.text(billAddress2, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-      const billCityProvPostal = [billCity, billProvince, billPostal].filter(Boolean).join(', ');
-      if (billCityProvPostal) {
-        doc.text(billCityProvPostal, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-      if (billCountry) {
-        doc.text(billCountry, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-      if (billPhone) {
-        doc.text(billPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
-        billY += billLineH;
-      }
-    } else {
-      // Both addresses are the same: render as shown in 2nd image (, , and CA)
-      doc.font('Helvetica').fontSize(9.5);
-      doc.text(', ,', leftBoxX + 6, boxTop + 48);
-      doc.text(billCountry || 'CA', leftBoxX + 6, boxTop + 62);
+    if (finalBillName) {
+      doc.text(finalBillName, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+    if (finalBillAddress1) {
+      doc.text(finalBillAddress1, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+    if (finalBillAddress2) {
+      doc.text(finalBillAddress2, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+    const billCityProvPostal = [finalBillCity, finalBillProvince, finalBillPostal].filter(Boolean).join(', ');
+    if (billCityProvPostal) {
+      doc.text(billCityProvPostal, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+    if (finalBillCountry) {
+      doc.text(finalBillCountry, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+    if (finalBillPhone) {
+      doc.text(finalBillPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
     }
 
     // Ship To Content
@@ -160,29 +159,29 @@ function generateInvoicePdf(data, outputPath) {
     let shipY = boxTop + 18;
     const shipLineH = 11.5;
 
-    if (shipName) {
-      doc.text(shipName, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (finalShipName) {
+      doc.text(finalShipName, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-    if (shipAddress1) {
-      doc.text(shipAddress1, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (finalShipAddress1) {
+      doc.text(finalShipAddress1, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-    if (shipAddress2) {
-      doc.text(shipAddress2, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (finalShipAddress2) {
+      doc.text(finalShipAddress2, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-    const shipCityProvPostal = [shipCity, shipProvince, shipPostal].filter(Boolean).join(', ');
+    const shipCityProvPostal = [finalShipCity, finalShipProvince, finalShipPostal].filter(Boolean).join(', ');
     if (shipCityProvPostal) {
       doc.text(shipCityProvPostal, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-    if (shipCountry) {
-      doc.text(shipCountry, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (finalShipCountry) {
+      doc.text(finalShipCountry, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-    if (shipPhone) {
-      doc.text(shipPhone, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (finalShipPhone) {
+      doc.text(finalShipPhone, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
 
