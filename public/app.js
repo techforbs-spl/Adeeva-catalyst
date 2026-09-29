@@ -448,11 +448,16 @@ document.getElementById('tax').addEventListener('input', () => {
 
 // Extract full form data object
 function getFormData() {
-  const orderNo = document.getElementById('orderNo').value.trim();
-  const sameAsBillTo = sameAsBillToCheckbox.checked;
+  const getVal = (id, defaultVal = '') => {
+    const el = document.getElementById(id);
+    return el ? el.value.trim() : defaultVal;
+  };
+
+  const orderNo = getVal('orderNo');
+  const sameAsBillTo = sameAsBillToCheckbox ? sameAsBillToCheckbox.checked : true;
 
   const items = [];
-  const rows = itemsBody.querySelectorAll('tr');
+  const rows = itemsBody ? itemsBody.querySelectorAll('tr') : [];
   rows.forEach(tr => {
     const productSelect = tr.querySelector('.item-product-select');
     const customNameInput = tr.querySelector('.item-custom-name');
@@ -486,44 +491,44 @@ function getFormData() {
 
   const data = {
     orderNo,
-    orderId: document.getElementById('orderId').value.trim(),
-    invoiceNumber: document.getElementById('invoiceNumber').value.trim(),
-    shipVia: document.getElementById('shipVia').value.trim() || 'Purolator',
-    orderDate: document.getElementById('orderDate').value,
-    dateWanted: document.getElementById('dateWanted').value || document.getElementById('orderDate').value,
-    terms: document.getElementById('terms').value.trim(),
-    orderNotes: document.getElementById('orderNotes').value.trim(),
+    orderId: getVal('orderId') || orderNo.replace(/\D/g, '') || orderNo,
+    invoiceNumber: getVal('invoiceNumber'),
+    shipVia: getVal('shipVia', 'Purolator'),
+    orderDate: getVal('orderDate'),
+    dateWanted: getVal('dateWanted') || getVal('orderDate'),
+    terms: getVal('terms'),
+    orderNotes: getVal('orderNotes'),
 
     // Customer / Bill-To
-    customerNo: document.getElementById('customerNo').value.trim(),
-    customerName: document.getElementById('customerName').value.trim(),
-    attention: document.getElementById('attention').value.trim(),
-    address1: document.getElementById('address1').value.trim(),
-    address2: document.getElementById('address2').value.trim(),
-    city: document.getElementById('city').value.trim(),
-    provinceState: document.getElementById('provinceState').value.trim(),
-    postalZip: document.getElementById('postalZip').value.trim(),
-    country: document.getElementById('country').value.trim(),
-    telephone: document.getElementById('telephone').value.trim(),
-    fax: document.getElementById('fax').value.trim(),
-    email: document.getElementById('email').value.trim(),
+    customerNo: getVal('customerNo'),
+    customerName: getVal('customerName'),
+    attention: getVal('attention'),
+    address1: getVal('address1'),
+    address2: getVal('address2'),
+    city: getVal('city'),
+    provinceState: getVal('provinceState'),
+    postalZip: getVal('postalZip'),
+    country: getVal('country', 'CA'),
+    telephone: getVal('telephone'),
+    fax: getVal('fax'),
+    email: getVal('email'),
 
     // Ship-To
     sameAsBillTo,
-    shipToName: sameAsBillTo ? document.getElementById('customerName').value.trim() : document.getElementById('shipToName').value.trim(),
-    shipToAttention: sameAsBillTo ? document.getElementById('attention').value.trim() : document.getElementById('shipToAttention').value.trim(),
-    shipToAddress1: sameAsBillTo ? document.getElementById('address1').value.trim() : document.getElementById('shipToAddress1').value.trim(),
-    shipToAddress2: sameAsBillTo ? '  ' : document.getElementById('shipToAddress2').value.trim(),
-    shipToCity: sameAsBillTo ? document.getElementById('city').value.trim() : document.getElementById('shipToCity').value.trim(),
-    shipToProvince: sameAsBillTo ? document.getElementById('provinceState').value.trim() : document.getElementById('shipToProvince').value.trim(),
-    shipToPostal: sameAsBillTo ? document.getElementById('postalZip').value.trim() : document.getElementById('shipToPostal').value.trim(),
-    shipToCountry: sameAsBillTo ? document.getElementById('country').value.trim() : document.getElementById('shipToCountry').value.trim(),
-    shipToPhone: sameAsBillTo ? document.getElementById('telephone').value.trim() : document.getElementById('shipToPhone').value.trim(),
-    shipToFax: sameAsBillTo ? document.getElementById('fax').value.trim() : document.getElementById('shipToFax').value.trim(),
-    shipToEmail: sameAsBillTo ? document.getElementById('email').value.trim() : document.getElementById('shipToEmail').value.trim(),
+    shipToName: sameAsBillTo ? getVal('customerName') : (getVal('shipToName') || getVal('customerName')),
+    shipToAttention: sameAsBillTo ? getVal('attention') : (getVal('shipToAttention') || getVal('attention')),
+    shipToAddress1: sameAsBillTo ? getVal('address1') : (getVal('shipToAddress1') || getVal('address1')),
+    shipToAddress2: sameAsBillTo ? '  ' : getVal('shipToAddress2'),
+    shipToCity: sameAsBillTo ? getVal('city') : (getVal('shipToCity') || getVal('city')),
+    shipToProvince: sameAsBillTo ? getVal('provinceState') : (getVal('shipToProvince') || getVal('provinceState')),
+    shipToPostal: sameAsBillTo ? getVal('postalZip') : (getVal('shipToPostal') || getVal('postalZip')),
+    shipToCountry: sameAsBillTo ? getVal('country', 'CA') : getVal('shipToCountry', 'CA'),
+    shipToPhone: sameAsBillTo ? getVal('telephone') : (getVal('shipToPhone') || getVal('telephone')),
+    shipToFax: sameAsBillTo ? getVal('fax') : getVal('shipToFax'),
+    shipToEmail: sameAsBillTo ? getVal('email') : (getVal('shipToEmail') || getVal('email')),
 
     // Company Header
-    companyName: document.getElementById('companyName').value.trim(),
+    companyName: getVal('companyName', 'Adeeva Nutritionals Canada Inc.'),
 
     items,
     subtotal: totals.subtotal,
@@ -538,22 +543,24 @@ function getFormData() {
 
 // Generate the 4 files via API
 async function handleGenerate() {
-  const formData = getFormData();
-  if (!formData.orderNo) {
-    showToast('Please provide an Order Number (e.g. ORD0042588)', 'error');
-    document.getElementById('orderNo').focus();
-    return;
-  }
-  if (!formData.customerNo) {
-    showToast('Please provide Customer Number', 'error');
-    document.getElementById('customerNo').focus();
-    return;
-  }
-
-  btnGenerate.innerHTML = `<span class="spinner"></span> Generating...`;
-  btnGenerate.disabled = true;
-
   try {
+    const formData = getFormData();
+    if (!formData.orderNo) {
+      showToast('Please provide an Order Number (e.g. ORD0042603)', 'error');
+      document.getElementById('orderNo')?.focus();
+      return;
+    }
+    if (!formData.customerNo) {
+      showToast('Please provide Customer Number (e.g. 03274)', 'error');
+      document.getElementById('customerNo')?.focus();
+      return;
+    }
+
+    if (btnGenerate) {
+      btnGenerate.innerHTML = `<span class="spinner"></span> Generating...`;
+      btnGenerate.disabled = true;
+    }
+
     const res = await fetch('/api/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -570,18 +577,21 @@ async function handleGenerate() {
     state.previews = result.data.previews;
 
     renderGeneratedFiles(result.data.files, result.data.orderNo);
-    btnDownloadZip.disabled = false;
+    if (btnDownloadZip) btnDownloadZip.disabled = false;
     showToast(`Successfully created 4 files for Order ${result.data.orderNo}!`, 'success');
     openSuccessModal(result.data.files, result.data.orderNo);
     fetchOrderHistory();
   } catch (err) {
+    console.error('Error generating files:', err);
     showToast(`Error: ${err.message}`, 'error');
   } finally {
-    btnGenerate.innerHTML = `
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
-      Generate 4 Files
-    `;
-    btnGenerate.disabled = false;
+    if (btnGenerate) {
+      btnGenerate.innerHTML = `
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+        Generate 4 Files
+      `;
+      btnGenerate.disabled = false;
+    }
   }
 }
 
@@ -1029,7 +1039,7 @@ function populateFormWithData(data) {
     if (data.shipToPostal) document.getElementById('shipToPostal').value = data.shipToPostal;
     if (data.shipToCountry) document.getElementById('shipToCountry').value = data.shipToCountry;
     if (data.shipToPhone) document.getElementById('shipToPhone').value = data.shipToPhone;
-    if (data.shipToFax !== undefined) document.getElementById('shipToFax').value = data.shipToFax;
+    if (data.shipToFax !== undefined && document.getElementById('shipToFax')) document.getElementById('shipToFax').value = data.shipToFax;
     if (data.shipToEmail) document.getElementById('shipToEmail').value = data.shipToEmail;
   }
 

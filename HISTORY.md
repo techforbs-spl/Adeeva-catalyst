@@ -9,6 +9,6 @@
 
 | Order # | Customer Name | Order Date | Items | Total ($) | 4 Files Status | FTP Upload Status | Created At |
 | :--- | :--- | :--- | :---: | :---: | :--- | :--- | :--- |
-| **ORD0042603** | Lapena, Carlos | 2026-09-18 | 2 | $330.12 | ✅ Ready | 📁 Local Output Only | 9/28/2026 |
+| **ORD0042603** | Lapena, Carlos | - | 1 | $330.12 | ✅ Ready | 📁 Local Output Only | 9/28/2026 |
 | **ORD0042588** | Chagnon, Olivier | 2026-09-11 | 2 | $332.39 | ✅ Ready | 📁 Local Output Only | 9/28/2026 |
 

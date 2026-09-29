@@ -6,31 +6,31 @@
     "customerName": "Lapena, Carlos",
     "customerNo": "03274",
     "total": 330.12,
-    "itemCount": 2,
+    "itemCount": 1,
     "createdAt": "2026-09-28T16:17:46.466Z",
-    "updatedAt": "2026-09-28T16:17:46.572Z",
+    "updatedAt": "2026-09-29T05:07:30.587Z",
     "ftpUploaded": false,
     "ftpUploadedAt": null,
     "ftpTargetDir": null,
     "files": {
       "customerXml": {
         "name": "customer-ORD0042603.xml",
-        "size": 466,
+        "size": 393,
         "exists": true
       },
       "shiptoXml": {
         "name": "shipto-ORD0042603.xml",
-        "size": 461,
+        "size": 423,
         "exists": true
       },
       "orderXml": {
         "name": "order-ORD0042603.xml",
-        "size": 433,
+        "size": 317,
         "exists": true
       },
       "invoicePdf": {
         "name": "invoice-ORD0042603.pdf",
-        "size": 3124,
+        "size": 2851,
         "exists": true
       }
     },
@@ -38,36 +38,8 @@
       "orderNo": "ORD0042603",
       "orderId": "42603",
       "invoiceNumber": "IN00042266",
-      "shipVia": "Purolator",
-      "orderDate": "2026-09-18",
-      "dateWanted": "2026-09-18",
-      "terms": "",
-      "orderNotes": "SIGNATURE REQUIRED**CONCIERGE REC",
       "customerNo": "03274",
       "customerName": "Lapena, Carlos",
-      "attention": "Roper Avenue Chiropractic",
-      "address1": "15158 Roper Avenue",
-      "address2": "*Closed Tuesday & Thursday*",
-      "city": "White Rock",
-      "provinceState": "BC",
-      "postalZip": "V4B 2E7",
-      "country": "CA",
-      "telephone": "",
-      "fax": "",
-      "email": "",
-      "sameAsBillTo": false,
-      "shipToName": "Carlos Lapena",
-      "shipToAttention": "Carlos Lapena",
-      "shipToAddress1": "708-15165 Thrift Avenue",
-      "shipToAddress2": "",
-      "shipToCity": "White Rock",
-      "shipToProvince": "BC",
-      "shipToPostal": "V4B 0C1",
-      "shipToCountry": "CA",
-      "shipToPhone": "",
-      "shipToFax": "",
-      "shipToEmail": "",
-      "companyName": "Adeeva Nutritionals Canada Inc.",
       "items": [
         {
           "partNo": "KNS-000020",
@@ -77,25 +49,11 @@
           "shipped": 8,
           "bo": 0,
           "price": 26.66
-        },
-        {
-          "partNo": "KNS-000010",
-          "sku": "KNS-000010",
-          "description": "Sleep – E Naturals",
-          "quantity": 4,
-          "shipped": 4,
-          "bo": 0,
-          "price": 25.28
         }
       ],
-      "subtotal": 314.4,
-      "discount": 0,
-      "shipping": 0,
-      "tax": 15.72,
-      "total": 330.12,
-      "orderDateRaw": "20260918",
-      "orderDateFormatted": "18/09/2026",
-      "invoiceDate": "18/09/2026"
+      "orderDateRaw": "20260929",
+      "orderDateFormatted": "29/09/2026",
+      "invoiceDate": "29/09/2026"
     }
   },
   {
