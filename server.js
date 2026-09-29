@@ -522,9 +522,9 @@ async function ensureOrderFilesExist(orderNo) {
       const ordPath = path.join(OUTPUT_DIR, `order-${orderNo}.xml`);
       const pdfPath = path.join(OUTPUT_DIR, `invoice-${orderNo}.pdf`);
 
-      if (!fs.existsSync(custPath)) generateCustomerXml(orderData, custPath);
-      if (!fs.existsSync(shipPath)) generateShiptoXml(orderData, shipPath);
-      if (!fs.existsSync(ordPath)) generateOrderXml(orderData, ordPath);
+      if (!fs.existsSync(custPath)) fs.writeFileSync(custPath, generateCustomerXml(orderData), 'utf8');
+      if (!fs.existsSync(shipPath)) fs.writeFileSync(shipPath, generateShiptoXml(orderData), 'utf8');
+      if (!fs.existsSync(ordPath)) fs.writeFileSync(ordPath, generateOrderXml(orderData), 'utf8');
       if (!fs.existsSync(pdfPath)) await generateInvoicePdf(orderData, pdfPath);
       return true;
     } catch (err) {
