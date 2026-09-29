@@ -71,7 +71,12 @@ function generateOrderXml(data) {
   const shipTo = escapeXml(data.orderNo || data.shiptoNo || data.shipTo || '');
   const dateWanted = escapeXml(formatDateWithDashes(data.dateWanted || data.orderDate || data.orderDateRaw || ''));
   const orderDate = escapeXml(formatDateWithDashes(data.orderDate || data.orderDateRaw || ''));
-  const orderNotes = escapeXml((data.orderNotes || '').trim());
+
+  let orderNotes = (data.orderNotes || '').trim();
+  orderNotes = orderNotes
+    .replace(/&amp;/g, '&')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 
   const itemsXml = (data.items || []).map(item => {
     const partNo = escapeXml(item.sku || item.partNo || '');
