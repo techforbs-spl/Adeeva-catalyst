@@ -61,31 +61,77 @@ function generateInvoicePdf(data, outputPath) {
     doc.text('BILL TO :', leftBoxX + 6, boxTop + 5);
     doc.text('SHIP TO :', rightBoxX + 6, boxTop + 5);
 
-    // Bill To Content
-    doc.font('Helvetica').fontSize(9);
-    let billY = boxTop + 18;
-    const billLineH = 11.5;
+    // Bill To & Ship To resolution
+    const billName = (data.billToName || data.customerName || '').trim();
+    const billAddress1 = (data.billToAddress1 || data.address1 || '').trim();
+    let billAddress2 = (data.billToAddress2 !== undefined ? data.billToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim();
+    if (billAddress2 === '-, -' || billAddress2 === '-') billAddress2 = '';
+    const billCity = (data.billToCity || data.city || '').trim();
+    const billProvince = (data.billToProvince || data.provinceState || '').trim();
+    const billPostal = (data.billToPostal || data.postalZip || '').trim();
+    const billCountry = (data.billToCountry || data.country || 'CA').trim();
+    const billPhone = (data.billToPhone || data.telephone || '').trim();
 
-    doc.text(data.billToName || '', leftBoxX + 6, billY, { width: boxWidth - 12 });
-    billY += billLineH;
+    const shipName = (data.shipToName || billName).trim();
+    const shipAddress1 = (data.shipToAddress1 || billAddress1).trim();
+    let shipAddress2 = (data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim();
+    if (shipAddress2 === '-, -' || shipAddress2 === '-') shipAddress2 = '';
+    const shipCity = (data.shipToCity || billCity).trim();
+    const shipProvince = (data.shipToProvince || billProvince).trim();
+    const shipPostal = (data.shipToPostal || billPostal).trim();
+    const shipCountry = (data.shipToCountry || billCountry || 'CA').trim();
+    const shipPhone = (data.shipToPhone || billPhone).trim();
 
-    doc.text(data.billToAddress1 || '', leftBoxX + 6, billY, { width: boxWidth - 12 });
-    billY += billLineH;
-
-    if (data.billToAddress2 && data.billToAddress2.trim() && data.billToAddress2.trim() !== '-, -' && data.billToAddress2.trim() !== '-') {
-      doc.text(data.billToAddress2.trim(), leftBoxX + 6, billY, { width: boxWidth - 12 });
-      billY += billLineH;
+    // Check if billing address is different from shipping address
+    const cleanStr = (str) => (str || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    let showBillTo = false;
+    if (data.sameAsBillTo === true) {
+      showBillTo = false;
+    } else if (data.sameAsBillTo === false) {
+      showBillTo = true;
+    } else if (billAddress1 || billCity || billName) {
+      // If sameAsBillTo flag not explicitly provided, check if any address line differs
+      showBillTo = (
+        cleanStr(billName) !== cleanStr(shipName) ||
+        cleanStr(billAddress1) !== cleanStr(shipAddress1) ||
+        cleanStr(billAddress2) !== cleanStr(shipAddress2) ||
+        cleanStr(billCity) !== cleanStr(shipCity) ||
+        cleanStr(billProvince) !== cleanStr(shipProvince) ||
+        cleanStr(billPostal) !== cleanStr(shipPostal)
+      );
     }
 
-    doc.text(`${data.billToCity || ''}, ${data.billToProvince || ''}, ${data.billToPostal || ''}`, leftBoxX + 6, billY, { width: boxWidth - 12 });
-    billY += billLineH;
+    // Bill To Content (only rendered if different from ship-to address)
+    if (showBillTo) {
+      doc.font('Helvetica').fontSize(9);
+      let billY = boxTop + 18;
+      const billLineH = 11.5;
 
-    doc.text(data.billToCountry || 'CA', leftBoxX + 6, billY, { width: boxWidth - 12 });
-    billY += billLineH;
-
-    if (data.billToPhone) {
-      doc.text(data.billToPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
-      billY += billLineH;
+      if (billName) {
+        doc.text(billName, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
+      if (billAddress1) {
+        doc.text(billAddress1, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
+      if (billAddress2) {
+        doc.text(billAddress2, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
+      const billCityProvPostal = [billCity, billProvince, billPostal].filter(Boolean).join(', ');
+      if (billCityProvPostal) {
+        doc.text(billCityProvPostal, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
+      if (billCountry) {
+        doc.text(billCountry, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
+      if (billPhone) {
+        doc.text(billPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
+        billY += billLineH;
+      }
     }
 
     // Ship To Content
@@ -93,25 +139,29 @@ function generateInvoicePdf(data, outputPath) {
     let shipY = boxTop + 18;
     const shipLineH = 11.5;
 
-    doc.text(data.shipToName || data.billToName || '', rightBoxX + 6, shipY, { width: boxWidth - 12 });
-    shipY += shipLineH;
-
-    doc.text(data.shipToAddress1 || data.billToAddress1 || '', rightBoxX + 6, shipY, { width: boxWidth - 12 });
-    shipY += shipLineH;
-
-    if (data.shipToAddress2 && data.shipToAddress2.trim() && data.shipToAddress2.trim() !== '-, -' && data.shipToAddress2.trim() !== '-') {
-      doc.text(data.shipToAddress2.trim(), rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (shipName) {
+      doc.text(shipName, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
-
-    doc.text(`${data.shipToCity || data.billToCity || ''}, ${data.shipToProvince || data.billToProvince || ''}, ${data.shipToPostal || data.billToPostal || ''}`, rightBoxX + 6, shipY, { width: boxWidth - 12 });
-    shipY += shipLineH;
-
-    doc.text(data.shipToCountry || data.billToCountry || 'CA', rightBoxX + 6, shipY, { width: boxWidth - 12 });
-    shipY += shipLineH;
-
-    if (data.shipToPhone || data.billToPhone) {
-      doc.text(data.shipToPhone || data.billToPhone, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    if (shipAddress1) {
+      doc.text(shipAddress1, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+    if (shipAddress2) {
+      doc.text(shipAddress2, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+    const shipCityProvPostal = [shipCity, shipProvince, shipPostal].filter(Boolean).join(', ');
+    if (shipCityProvPostal) {
+      doc.text(shipCityProvPostal, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+    if (shipCountry) {
+      doc.text(shipCountry, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+    if (shipPhone) {
+      doc.text(shipPhone, rightBoxX + 6, shipY, { width: boxWidth - 12 });
       shipY += shipLineH;
     }
 
