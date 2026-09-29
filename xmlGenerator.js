@@ -13,7 +13,8 @@ function generateCustomerXml(data) {
   const customerName = escapeXml(data.customerName || data.billToName || '');
   const attention = escapeXml(data.attention || data.billToAttention || customerName);
   const address1 = escapeXml(data.address1 || data.billToAddress1 || '');
-  const address2 = escapeXml(data.address2 !== undefined ? data.address2 : (data.billToAddress2 !== undefined ? data.billToAddress2 : '-, -  '));
+  const rawAddr2 = data.address2 !== undefined ? data.address2 : (data.billToAddress2 !== undefined ? data.billToAddress2 : '-, -  ');
+  const address2 = escapeXml(rawAddr2 !== undefined && rawAddr2 !== null && rawAddr2 !== '' ? (rawAddr2.trim() ? rawAddr2 : ' ') : ' ');
   const postalZip = escapeXml(data.postalZip || data.billToPostal || '');
   const provinceState = escapeXml(data.provinceState || data.billToProvince || '');
   const country = escapeXml(data.country || data.billToCountry || 'CA');
@@ -32,7 +33,8 @@ function generateShiptoXml(data) {
   const shiptoName = escapeXml(data.shipToName || data.customerName || data.billToName || '');
   const attention = escapeXml(data.shipToAttention || data.attention || shiptoName);
   const address1 = escapeXml(data.shipToAddress1 || data.address1 || data.billToAddress1 || '');
-  const address2 = escapeXml((data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '')).trim());
+  const rawShipAddr2 = data.shipToAddress2 !== undefined ? data.shipToAddress2 : (data.address2 !== undefined ? data.address2 : '');
+  const address2 = escapeXml(rawShipAddr2 !== undefined && rawShipAddr2 !== null && rawShipAddr2 !== '' ? (rawShipAddr2.trim() ? rawShipAddr2.trim() : ' ') : ' ');
   const postalZip = escapeXml(data.shipToPostal || data.postalZip || data.billToPostal || '');
   const provinceState = escapeXml(data.shipToProvince || data.provinceState || data.billToProvince || '');
   const country = escapeXml(data.shipToCountry || data.country || data.billToCountry || 'CA');
