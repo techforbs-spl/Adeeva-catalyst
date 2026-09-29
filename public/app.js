@@ -649,7 +649,6 @@ async function handleGenerate() {
     renderGeneratedFiles(result.data.files, result.data.orderNo);
     if (btnDownloadZip) btnDownloadZip.disabled = false;
     showToast(`Successfully created 4 files for Order ${result.data.orderNo}!`, 'success');
-    openSuccessModal(result.data.files, result.data.orderNo);
     fetchOrderHistory();
   } catch (err) {
     console.error('Error generating files:', err);
@@ -665,44 +664,9 @@ async function handleGenerate() {
   }
 }
 
-// Success Modal for 4 Files
+// Success Modal for 4 Files (disabled per request: files already displayed in right sidebar)
 window.openSuccessModal = function openSuccessModal(files, orderNo) {
-  const modal = document.getElementById('success-files-modal');
-  const title = document.getElementById('success-modal-title');
-  const list = document.getElementById('success-files-list');
-  if (!modal || !list) return;
-
-  if (title) title.textContent = `Order ${orderNo} — 4 Files Ready!`;
-
-  list.innerHTML = files.map(file => {
-    const isPdf = file.type === 'pdf';
-    const viewType = isPdf ? 'invoice' : (file.type || 'xml');
-    const sizeKb = (file.size / 1024).toFixed(1);
-    const dlUrl = `/api/download/${encodeURIComponent(orderNo)}/${viewType === 'invoice' ? 'pdf' : viewType}`;
-    return `
-      <div style="display: flex; align-items: center; justify-content: space-between; background: #ffffff; padding: 0.75rem 1rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light); box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-        <div style="display: flex; align-items: center; gap: 0.65rem;">
-          <span style="font-size: 1.35rem;">${isPdf ? '📑' : '📄'}</span>
-          <div>
-            <div style="font-weight: 700; font-size: 0.875rem; color: var(--text-dark);">${escapeHtml(file.name)}</div>
-            <div style="font-size: 0.75rem; color: var(--text-muted);">${sizeKb} KB Generated</div>
-          </div>
-        </div>
-        <div style="display: flex; gap: 0.5rem;">
-          <button type="button" class="btn btn-secondary btn-sm" onclick="previewFile('${viewType}', '${orderNo}')" title="Preview file">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-            Preview
-          </button>
-          <a href="${dlUrl}" class="btn btn-outline-teal btn-sm" title="Download file" download>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download
-          </a>
-        </div>
-      </div>
-    `;
-  }).join('');
-
-  modal.classList.add('active');
+  // Popup removed
 };
 
 window.closeSuccessModal = function closeSuccessModal() {
