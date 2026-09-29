@@ -758,10 +758,16 @@ window.previewFile = async function(type, orderNo) {
   previewModalTitle.textContent = `Preview: ${type}-${orderNo}.${type === 'invoice' ? 'pdf' : 'xml'}`;
   previewModal.classList.add('active');
   
-  if (type === 'invoice') {
+  if (type === 'invoice' || type === 'pdf') {
     previewModalBody.innerHTML = `
-      <div style="height: 600px; width: 100%;">
-        <iframe src="/api/download/${encodeURIComponent(orderNo)}/pdf?inline=true#toolbar=1" style="width: 100%; height: 100%; border: none; border-radius: 8px;"></iframe>
+      <div style="height: 620px; width: 100%; display: flex; flex-direction: column;">
+        <div style="display: flex; justify-content: flex-end; margin-bottom: 0.75rem; gap: 0.5rem;">
+          <a href="/api/download/${encodeURIComponent(orderNo)}/pdf" class="btn btn-outline-teal btn-sm" download>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download PDF
+          </a>
+        </div>
+        <iframe src="/api/download/${encodeURIComponent(orderNo)}/pdf?inline=true#toolbar=1" style="width: 100%; height: 570px; border: 1px solid var(--border-light); border-radius: 8px; background: #ffffff;"></iframe>
       </div>
     `;
     return;

@@ -8,7 +8,7 @@
   ],
   "functions": {
     "api/index.js": {
-      "includeFiles": "node_modules/pdfkit/**"
+      "includeFiles": "{node_modules/pdfkit/**,output/**,data/**,PRODUCTS.md}"
     }
   }
 }

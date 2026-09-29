@@ -481,8 +481,62 @@ app.post('/api/generate', async (req, res) => {
   }
 });
 
-// API: Download single file
-app.get('/api/download/:orderNo/:type', (req, res) => {
+// Ensure the 4 files for an order exist on disk; if missing, auto-regenerate on the fly!
+async function ensureOrderFilesExist(orderNo) {
+  const filenames = [
+    `customer-${orderNo}.xml`,
+    `shipto-${orderNo}.xml`,
+    `order-${orderNo}.xml`,
+    `invoice-${orderNo}.pdf`
+  ];
+
+  // 1. If files exist in bundled output (e.g. on Vercel deployment), copy them to writable OUTPUT_DIR
+  const bundledOutput = path.join(__dirname, 'output');
+  if (fs.existsSync(bundledOutput)) {
+    filenames.forEach(fn => {
+      const target = path.join(OUTPUT_DIR, fn);
+      const src = path.join(bundledOutput, fn);
+      if (!fs.existsSync(target) && fs.existsSync(src)) {
+        try { fs.copyFileSync(src, target); } catch (_) {}
+      }
+    });
+  }
+
+  // 2. Check if all 4 files already exist
+  const allExist = filenames.every(fn => fs.existsSync(path.join(OUTPUT_DIR, fn)));
+  if (allExist) return true;
+
+  // 3. Look up orderData in history or sample data
+  const history = loadHistory();
+  const entry = history.find(h => h.orderNo === orderNo);
+  let orderData = entry?.orderData;
+  if (!orderData && (orderNo === 'ORD0042588' || orderNo === 'ORD42588')) {
+    orderData = getSampleOrderData();
+  }
+
+  // 4. Regenerate missing files on demand
+  if (orderData) {
+    try {
+      const custPath = path.join(OUTPUT_DIR, `customer-${orderNo}.xml`);
+      const shipPath = path.join(OUTPUT_DIR, `shipto-${orderNo}.xml`);
+      const ordPath = path.join(OUTPUT_DIR, `order-${orderNo}.xml`);
+      const pdfPath = path.join(OUTPUT_DIR, `invoice-${orderNo}.pdf`);
+
+      if (!fs.existsSync(custPath)) generateCustomerXml(orderData, custPath);
+      if (!fs.existsSync(shipPath)) generateShiptoXml(orderData, shipPath);
+      if (!fs.existsSync(ordPath)) generateOrderXml(orderData, ordPath);
+      if (!fs.existsSync(pdfPath)) await generateInvoicePdf(orderData, pdfPath);
+      return true;
+    } catch (err) {
+      console.error(`Failed to auto-regenerate files for ${orderNo}:`, err);
+    }
+  }
+
+  return false;
+}
+
+// API: Download single file (with on-the-fly auto-regeneration)
+app.get('/api/download/:orderNo/:type', async (req, res) => {
   const { orderNo, type } = req.params;
   let filename = '';
   let contentType = 'application/octet-stream';
@@ -503,14 +557,21 @@ app.get('/api/download/:orderNo/:type', (req, res) => {
     return res.status(400).send('Invalid file type.');
   }
 
-  const filePath = path.join(OUTPUT_DIR, filename);
+  await ensureOrderFilesExist(orderNo);
+
+  let filePath = path.join(OUTPUT_DIR, filename);
   if (!fs.existsSync(filePath)) {
-    return res.status(404).send('File not found. Please generate the files first.');
+    const bundledPath = path.join(__dirname, 'output', filename);
+    if (fs.existsSync(bundledPath)) {
+      filePath = bundledPath;
+    } else {
+      return res.status(404).send('File not found. Please generate the files first.');
+    }
   }
 
   res.setHeader('Content-Type', contentType);
   // If previewing PDF inline, don't force attachment download
-  if (type === 'pdf' && req.query.inline === 'true') {
+  if ((type === 'pdf' || type === 'invoice') && req.query.inline === 'true') {
     res.setHeader('Content-Disposition', `inline; filename="${filename}"`);
   } else {
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
@@ -518,9 +579,11 @@ app.get('/api/download/:orderNo/:type', (req, res) => {
   fs.createReadStream(filePath).pipe(res);
 });
 
-// API: Download all 4 files as ZIP
+// API: Download all 4 files as ZIP (with on-the-fly auto-regeneration)
 app.get('/api/download-zip/:orderNo', async (req, res) => {
   const { orderNo } = req.params;
+  await ensureOrderFilesExist(orderNo);
+
   const filenames = [
     `customer-${orderNo}.xml`,
     `shipto-${orderNo}.xml`,
@@ -529,7 +592,9 @@ app.get('/api/download-zip/:orderNo', async (req, res) => {
   ];
 
   for (const name of filenames) {
-    if (!fs.existsSync(path.join(OUTPUT_DIR, name))) {
+    const p = path.join(OUTPUT_DIR, name);
+    const bp = path.join(__dirname, 'output', name);
+    if (!fs.existsSync(p) && !fs.existsSync(bp)) {
       return res.status(404).send(`File ${name} not found. Please generate the files first.`);
     }
   }
@@ -549,7 +614,10 @@ app.get('/api/download-zip/:orderNo', async (req, res) => {
     archive.pipe(res);
 
     filenames.forEach(name => {
-      archive.file(path.join(OUTPUT_DIR, name), { name });
+      const p = path.join(OUTPUT_DIR, name);
+      const bp = path.join(__dirname, 'output', name);
+      const actualPath = fs.existsSync(p) ? p : bp;
+      archive.file(actualPath, { name });
     });
 
     archive.finalize();
