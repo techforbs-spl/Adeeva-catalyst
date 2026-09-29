@@ -831,19 +831,16 @@ function getFtpConfig() {
   const portVal = document.getElementById('ftpPort')?.value.trim();
   const userVal = document.getElementById('ftpUser')?.value.trim();
   const passVal = document.getElementById('ftpPassword')?.value;
-  const remoteDirVal = document.getElementById('ftpRemoteDir')?.value.trim() || '/';
+  const remoteDirVal = document.getElementById('ftpRemoteDir')?.value.trim();
   const secureVal = document.getElementById('ftpSecure')?.checked;
 
-  const config = {
-    remoteDir: remoteDirVal
-  };
-
-  // Only pass override credentials if manually entered
+  const config = {};
+  if (remoteDirVal) config.remoteDir = remoteDirVal;
   if (hostVal) config.host = hostVal;
   if (portVal) config.port = portVal;
   if (userVal) config.user = userVal;
   if (passVal) config.password = passVal;
-  if (document.getElementById('ftpSecure')) config.secure = secureVal;
+  if (document.getElementById('ftpSecure') && secureVal !== undefined) config.secure = secureVal;
 
   return config;
 }
@@ -858,9 +855,12 @@ window.setQuickFolder = function(folderPath) {
   }
 };
 
-// Test FTP Connection (using .env or overrides)
+// Test FTP Connection (using .env)
 window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
-  const config = typeof getFtpConfig === 'function' ? getFtpConfig() : {};
+  // Prevent duplicate concurrent clicks
+  if (window._isCheckingFtp) return;
+  window._isCheckingFtp = true;
+
   const btnHeader = clickedBtn || document.getElementById('btn-check-ftp-status');
   const btnSidebar = document.getElementById('btn-test-ftp');
   const badge = document.getElementById('ftp-status-badge');
@@ -887,7 +887,7 @@ window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
     const res = await fetch('/api/ftp/test', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(config)
+      body: JSON.stringify({}) // Pure test directly from server .env!
     });
     const result = await res.json();
 
@@ -897,9 +897,9 @@ window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
         badge.textContent = 'Online & Ready';
       }
       if (pulse) pulse.classList.remove('offline');
-      if (hostLabel) hostLabel.textContent = `${result.host || config.host || 'ftp.catalystbiz.com'}:${result.port || 21}`;
-      if (userLabel) userLabel.textContent = `Connected as '${result.user || config.user || 'adeeva'}' • .env Verified`;
-      const folderPath = result.targetDir || config.remoteDir || '/for_ccm';
+      if (hostLabel) hostLabel.textContent = `${result.host || 'ftp.catalystbiz.com'}:${result.port || 21}`;
+      if (userLabel) userLabel.textContent = `Connected as '${result.user || 'adeeva'}' • .env Verified`;
+      const folderPath = result.targetDir || '/for_ccm';
       const msg = result.message && result.message.includes('Target folder') 
         ? result.message 
         : `Connected successfully! Target folder: ${folderPath} (Found ${result.itemCount !== undefined ? result.itemCount : 'multiple'} items in remote directory).`;
@@ -920,6 +920,7 @@ window.checkFtpStatus = async function checkFtpStatus(clickedBtn) {
     if (pulse) pulse.classList.add('offline');
     showToast(`Network Error: ${err.message}`, 'error');
   } finally {
+    window._isCheckingFtp = false;
     if (btnHeader) {
       btnHeader.disabled = false;
       btnHeader.innerHTML = origHeaderHtml;

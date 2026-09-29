@@ -82,7 +82,7 @@ function getEffectiveFtpConfig(clientConfig = {}) {
   const password = (clientConfig.password !== undefined && clientConfig.password !== '') 
     ? clientConfig.password 
     : (fileEnv.FTP_PASSWORD !== undefined ? fileEnv.FTP_PASSWORD : (process.env.FTP_PASSWORD || ''));
-  const remoteDir = clientConfig.remoteDir || fileEnv.FTP_REMOTE_DIR || process.env.FTP_REMOTE_DIR || '/for_ccm/archive';
+  const remoteDir = fileEnv.FTP_REMOTE_DIR || process.env.FTP_REMOTE_DIR || clientConfig.remoteDir || '/for_ccm';
   const secure = clientConfig.secure !== undefined 
     ? (clientConfig.secure === true || clientConfig.secure === 'true') 
     : (fileEnv.FTP_SECURE === 'true' || process.env.FTP_SECURE === 'true');
@@ -690,7 +690,7 @@ app.post('/api/history/ftp-upload/:orderNo', async (req, res) => {
     const { ftpConfig, remoteDir } = req.body || {};
     const config = getEffectiveFtpConfig({
       ...(ftpConfig || {}),
-      remoteDir: remoteDir || (ftpConfig && ftpConfig.remoteDir) || '/for_ccm/archive'
+      remoteDir: remoteDir || (ftpConfig && ftpConfig.remoteDir) || '/for_ccm'
     });
 
     if (!config.host) {
