@@ -44,12 +44,31 @@ function generateShiptoXml(data) {
   return `<shiptos><shipto customer_no='${customerNo}' shipto_no='${shiptoNo}' shipto_via='${shiptoVia}'><shipto_name>${shiptoName}</shipto_name><address><attention>${attention}</attention><address1>${address1}</address1><address2>${address2}</address2><postal_zip>${postalZip}</postal_zip><province_state>${provinceState}</province_state><country>${country}</country><city>${city}</city><telephone>${telephone}</telephone><fax>${fax}</fax><email>${email}</email></address></shipto></shiptos>`;
 }
 
+function formatDateWithDashes(val) {
+  if (!val) return '';
+  const str = String(val).trim();
+  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if (/^\d{8}$/.test(str)) return `${str.substring(0, 4)}-${str.substring(4, 6)}-${str.substring(6, 8)}`;
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(str)) {
+    const parts = str.split('/');
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  const d = new Date(str);
+  if (!isNaN(d.getTime())) {
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+  return str;
+}
+
 function generateOrderXml(data) {
   const orderId = escapeXml(data.orderId || '');
   const billTo = escapeXml(data.customerNo || data.billTo || '');
   const shipTo = escapeXml(data.orderNo || data.shiptoNo || data.shipTo || '');
-  const dateWanted = escapeXml(data.dateWanted || data.orderDateRaw || '');
-  const orderDate = escapeXml(data.orderDateRaw || '');
+  const dateWanted = escapeXml(formatDateWithDashes(data.dateWanted || data.orderDate || data.orderDateRaw || ''));
+  const orderDate = escapeXml(formatDateWithDashes(data.orderDate || data.orderDateRaw || ''));
   const orderNotes = escapeXml(data.orderNotes ? data.orderNotes.padEnd(24, ' ') : '');
 
   const itemsXml = (data.items || []).map(item => {
