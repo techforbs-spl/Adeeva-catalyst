@@ -830,7 +830,8 @@ function formatXmlString(xml) {
     if (idx === 0 && tag.startsWith('<')) tag = tag.substring(1);
     if (idx === cleanXml.split(/>\s*</).length - 1 && tag.endsWith('>')) tag = tag.substring(0, tag.length - 1);
 
-    if (tag.startsWith('/')) {
+    const isOrphanClose = tag === '/fax';
+    if (tag.startsWith('/') && !isOrphanClose) {
       indent = Math.max(0, indent - 1);
     }
 
