@@ -46,9 +46,9 @@ function generateInvoicePdf(data, outputPath) {
 
     // BILL TO / SHIP TO boxes
     // Box dimensions: 30 to 297.5 (width 267.5), 297.5 to 565 (width 267.5)
-    // Y: 130 to 228
+    // Y: 130 to 233
     const boxTop = 130;
-    const boxHeight = 98;
+    const boxHeight = 103;
     const boxWidth = 267.5;
     const leftBoxX = 30;
     const rightBoxX = 297.5;
@@ -57,26 +57,71 @@ function generateInvoicePdf(data, outputPath) {
     doc.rect(rightBoxX, boxTop, boxWidth, boxHeight).stroke();
 
     // Headers
-    doc.font('Helvetica-Bold').fontSize(10);
-    doc.text('BILL TO :', leftBoxX + 6, boxTop + 6);
-    doc.text('SHIP TO :', rightBoxX + 6, boxTop + 6);
+    doc.font('Helvetica-Bold').fontSize(9.5);
+    doc.text('BILL TO :', leftBoxX + 6, boxTop + 5);
+    doc.text('SHIP TO :', rightBoxX + 6, boxTop + 5);
 
     // Bill To Content
-    doc.font('Helvetica').fontSize(10);
-    doc.text(data.billToName || '', leftBoxX + 6, boxTop + 20);
-    doc.text(data.billToAddress1 || '', leftBoxX + 6, boxTop + 34);
-    doc.text(`${data.billToCity || ''}, ${data.billToProvince || ''}, ${data.billToPostal || ''}`, leftBoxX + 6, boxTop + 48);
-    doc.text(data.billToCountry || 'CA', leftBoxX + 6, boxTop + 62);
-    doc.text(data.billToPhone || '', leftBoxX + 6, boxTop + 76);
+    doc.font('Helvetica').fontSize(9);
+    let billY = boxTop + 18;
+    const billLineH = 11.5;
+
+    doc.text(data.billToName || '', leftBoxX + 6, billY, { width: boxWidth - 12 });
+    billY += billLineH;
+
+    doc.text(data.billToAddress1 || '', leftBoxX + 6, billY, { width: boxWidth - 12 });
+    billY += billLineH;
+
+    if (data.billToAddress2 && data.billToAddress2.trim() && data.billToAddress2.trim() !== '-, -' && data.billToAddress2.trim() !== '-') {
+      doc.text(data.billToAddress2.trim(), leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
+
+    doc.text(`${data.billToCity || ''}, ${data.billToProvince || ''}, ${data.billToPostal || ''}`, leftBoxX + 6, billY, { width: boxWidth - 12 });
+    billY += billLineH;
+
+    doc.text(data.billToCountry || 'CA', leftBoxX + 6, billY, { width: boxWidth - 12 });
+    billY += billLineH;
+
+    if (data.billToPhone) {
+      doc.text(data.billToPhone, leftBoxX + 6, billY, { width: boxWidth - 12 });
+      billY += billLineH;
+    }
 
     // Ship To Content
-    doc.text(data.shipToName || data.billToName || '', rightBoxX + 6, boxTop + 20);
-    doc.text(data.shipToAddress1 || data.billToAddress1 || '', rightBoxX + 6, boxTop + 34);
-    doc.text(`${data.shipToCity || data.billToCity || ''}, ${data.shipToProvince || data.billToProvince || ''}, ${data.shipToPostal || data.billToPostal || ''}`, rightBoxX + 6, boxTop + 48);
-    doc.text(data.shipToCountry || data.billToCountry || 'CA', rightBoxX + 6, boxTop + 62);
-    doc.text(data.shipToPhone || data.billToPhone || '', rightBoxX + 6, boxTop + 76);
+    doc.font('Helvetica').fontSize(9);
+    let shipY = boxTop + 18;
+    const shipLineH = 11.5;
+
+    doc.text(data.shipToName || data.billToName || '', rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    shipY += shipLineH;
+
+    doc.text(data.shipToAddress1 || data.billToAddress1 || '', rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    shipY += shipLineH;
+
+    if (data.shipToAddress2 && data.shipToAddress2.trim() && data.shipToAddress2.trim() !== '-, -' && data.shipToAddress2.trim() !== '-') {
+      doc.text(data.shipToAddress2.trim(), rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+
+    doc.text(`${data.shipToCity || data.billToCity || ''}, ${data.shipToProvince || data.billToProvince || ''}, ${data.shipToPostal || data.billToPostal || ''}`, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    shipY += shipLineH;
+
+    doc.text(data.shipToCountry || data.billToCountry || 'CA', rightBoxX + 6, shipY, { width: boxWidth - 12 });
+    shipY += shipLineH;
+
+    if (data.shipToPhone || data.billToPhone) {
+      doc.text(data.shipToPhone || data.billToPhone, rightBoxX + 6, shipY, { width: boxWidth - 12 });
+      shipY += shipLineH;
+    }
+
     if (data.orderNotes) {
-      doc.text(`Instruction: ${data.orderNotes}`, rightBoxX + 6, boxTop + 88, { width: boxWidth - 12 });
+      shipY += 2;
+      doc.fontSize(8).font('Helvetica');
+      doc.text(`Instruction: ${data.orderNotes}`, rightBoxX + 6, shipY, { 
+        width: boxWidth - 12,
+        lineGap: 1
+      });
     }
 
     // Special Instructions / Order Date / Order Number Bar
