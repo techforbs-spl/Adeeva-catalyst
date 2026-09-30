@@ -123,6 +123,38 @@
       border-radius: var(--radius-sm);
     }
 
+    .ccm-pill-group {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-copy-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: #ffffff;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 0.22rem 0.35rem;
+      transition: var(--transition);
+      line-height: 1;
+    }
+
+    .btn-copy-icon:hover {
+      background: var(--adeeva-teal-light);
+      color: var(--adeeva-teal-dark);
+      border-color: rgba(0, 158, 183, 0.4);
+    }
+
+    .btn-copy-icon.copied {
+      background: #ecfdf5;
+      color: #059669;
+      border-color: #a7f3d0;
+    }
+
     .file-link {
       color: var(--adeeva-teal-dark);
       text-decoration: none;

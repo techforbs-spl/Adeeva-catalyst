@@ -496,6 +496,15 @@ function doGet(e) {
       const isMoved = !!o.isMoved;
       const statusBadge = `<span class="history-ftp-badge uploaded">${escapeHtml(o.status || 'success')}</span>`;
 
+      const ccmHtml = o.ccmOrderId
+        ? `<div class="ccm-pill-group">
+             <span class="ccm-pill">${escapeHtml(o.ccmOrderId)}</span>
+             <button type="button" class="btn-copy-icon copy-ccm-btn" data-ccm="${escapeHtml(o.ccmOrderId)}" title="Copy CCM Order ID">
+               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+             </button>
+           </div>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+
       const actionHtml = isMoved
         ? `<span class="moved-badge">Moved (${escapeHtml(o.movedDate)})</span>`
         : `<button type="button" class="btn btn-secondary btn-sm move-order-btn" data-file="${escapeHtml(o.fileName)}" data-ccm="${escapeHtml(o.ccmOrderId || '')}" data-po="${escapeHtml(o.orderNumber || '')}" style="font-size:0.75rem; padding: 0.35rem 0.75rem;" title="Move order file to archive">
@@ -515,7 +524,7 @@ function doGet(e) {
         <tr style="${isMoved ? 'background:#f8fafc; opacity:0.75;' : ''}">
           <td>${fileNameHtml}</td>
           <td><span class="order-pill">${escapeHtml(o.orderNumber || '-')}</span></td>
-          <td><span class="ccm-pill">${escapeHtml(o.ccmOrderId || '-')}</span></td>
+          <td>${ccmHtml}</td>
           <td>${statusBadge}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">${escapeHtml(o.date ? new Date(o.date).toLocaleString() : '-')}</td>
           <td>${actionHtml}</td>
@@ -533,6 +542,15 @@ function doGet(e) {
         handleArchiveOrder(f, ccm, po);
       });
     });
+
+    // Attach click listeners to copy CCM buttons
+    ordersTableBody.querySelectorAll('.copy-ccm-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCopyCcm(btn);
+      });
+    });
   }
 
   function renderShipmentsTable(shipments) {
@@ -543,6 +561,16 @@ function doGet(e) {
 
     shipmentsTableBody.innerHTML = shipments.map(s => {
       const isMoved = !!s.isMoved;
+
+      const ccmHtml = s.ccmOrderId
+        ? `<div class="ccm-pill-group">
+             <span class="ccm-pill">${escapeHtml(s.ccmOrderId)}</span>
+             <button type="button" class="btn-copy-icon copy-ccm-btn" data-ccm="${escapeHtml(s.ccmOrderId)}" title="Copy CCM Order ID">
+               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+             </button>
+           </div>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+
       const actionHtml = isMoved
         ? `<span class="moved-badge">Moved (${escapeHtml(s.movedDate)})</span>`
         : `<button type="button" class="btn btn-secondary btn-sm move-btn" data-file="${escapeHtml(s.fileName)}" data-ccm="${escapeHtml(s.ccmOrderId || '')}" style="font-size:0.75rem; padding: 0.35rem 0.75rem;" title="Move shipment file to archive">
@@ -561,7 +589,7 @@ function doGet(e) {
       return `
         <tr style="${isMoved ? 'background:#f8fafc; opacity:0.75;' : ''}">
           <td>${fileNameHtml}</td>
-          <td><span class="ccm-pill">${escapeHtml(s.ccmOrderId || '-')}</span></td>
+          <td>${ccmHtml}</td>
           <td><span class="order-pill">${escapeHtml(s.orderNumber || '-')}</span></td>
           <td><span class="carrier-badge">${escapeHtml(s.carrier || s.rawCarrier || '-')}</span></td>
           <td style="font-family:'JetBrains Mono', monospace; font-size:0.82rem; font-weight:600;">${escapeHtml(s.waybill || '-')}</td>
@@ -580,6 +608,33 @@ function doGet(e) {
         handleArchiveShipment(f, ccm);
       });
     });
+
+    // Attach click listeners to copy CCM buttons
+    shipmentsTableBody.querySelectorAll('.copy-ccm-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        handleCopyCcm(btn);
+      });
+    });
+  }
+
+  async function handleCopyCcm(btn) {
+    const ccm = btn.dataset.ccm;
+    if (!ccm) return;
+    try {
+      await navigator.clipboard.writeText(ccm);
+      btn.classList.add('copied');
+      btn.title = 'Copied!';
+      btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
+      setTimeout(() => {
+        btn.classList.remove('copied');
+        btn.title = 'Copy CCM Order ID';
+        btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
+      }, 1500);
+    } catch (_) {
+      log(`Failed to copy to clipboard: ${ccm}`);
+    }
   }
 
   function escapeHtml(str) {
