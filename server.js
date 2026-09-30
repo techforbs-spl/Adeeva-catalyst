@@ -7,7 +7,7 @@ const express = require('express');
 const { generateInvoicePdf } = require('./pdfGenerator');
 const { generateCustomerXml, generateShiptoXml, generateOrderXml } = require('./xmlGenerator');
 const { testFtpConnection, uploadFilesToFtp, listFtpDirectory, createFtpDirectory } = require('./ftpService');
-const { fetchFtpOrdersAndShipments, sendToGoogleSheetWebhook, testGoogleWebhook, archiveShipmentAndOrder } = require('./googleSheetSyncService');
+const { fetchFtpOrdersAndShipments, sendToGoogleSheetWebhook, testGoogleWebhook, archiveShipmentFile, archiveOrderFile } = require('./googleSheetSyncService');
 
 const isVercel = !!process.env.VERCEL;
 const OUTPUT_DIR = isVercel ? path.join(os.tmpdir(), 'adeeva-output') : path.join(__dirname, 'output');
@@ -1355,7 +1355,7 @@ app.post('/api/sheet-sync/sync', async (req, res) => {
   }
 });
 
-// Move shipment file and its matching order file(s) to /for_adeeva/archive/YYYY-MM-DD/ and update Google Sheet
+// Move ONLY shipment file to /for_adeeva/archive/YYYY-MM-DD/ and update Google Sheet
 app.post('/api/sheet-sync/archive-shipment', async (req, res) => {
   try {
     const { shipmentFileName, ccmOrderId, webhookUrl, sheetUrl } = req.body;
@@ -1367,7 +1367,29 @@ app.post('/api/sheet-sync/archive-shipment', async (req, res) => {
     const effectiveSheetUrl = sheetUrl || env.GOOGLE_SHEET_URL || process.env.GOOGLE_SHEET_URL || '';
 
     const ftpConfig = getEffectiveFtpConfig();
-    const result = await archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, effectiveWebhookUrl, effectiveSheetUrl);
+    const result = await archiveShipmentFile(ftpConfig, shipmentFileName, ccmOrderId, effectiveWebhookUrl, effectiveSheetUrl);
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Move ONLY order file to /for_adeeva/archive/YYYY-MM-DD/ and update Google Sheet CCM ID
+app.post('/api/sheet-sync/archive-order', async (req, res) => {
+  try {
+    const { orderFileName, ccmOrderId, orderNumber, webhookUrl, sheetUrl } = req.body;
+    if (!orderFileName) {
+      return res.status(400).json({ success: false, message: 'Order file name is required.' });
+    }
+    const env = loadEnvDynamically();
+    const effectiveWebhookUrl = webhookUrl || env.GOOGLE_SHEET_WEBHOOK_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL || '';
+    const effectiveSheetUrl = sheetUrl || env.GOOGLE_SHEET_URL || process.env.GOOGLE_SHEET_URL || '';
+
+    const ftpConfig = getEffectiveFtpConfig();
+    const result = await archiveOrderFile(ftpConfig, orderFileName, ccmOrderId, orderNumber, effectiveWebhookUrl, effectiveSheetUrl);
     if (!result.success) {
       return res.status(500).json(result);
     }

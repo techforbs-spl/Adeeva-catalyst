@@ -100,7 +100,19 @@ function doPost(e) {
     }
     
     if (matchedRow > 0) {
-      // Update only the last 4 columns:
+      // Order-only update (when order file is archived)
+      if (data.action === 'update_order_ccm') {
+        if (data.ccmOrderId) sheet.getRange(matchedRow, 11).setValue(data.ccmOrderId);     // Col 11: CCM Order ID
+        return ContentService.createTextOutput(JSON.stringify({
+          status: 'success',
+          matchedRow: matchedRow,
+          orderNumber: data.orderNumber,
+          ccmOrderId: data.ccmOrderId,
+          message: 'Successfully updated row ' + matchedRow + ' with CCM Order ID!'
+        })).setMimeType(ContentService.MimeType.JSON);
+      }
+
+      // Shipment update (when shipment file is archived):
       if (data.ccmOrderId) sheet.getRange(matchedRow, 11).setValue(data.ccmOrderId);     // Col 11: CCM Order ID
       if (data.carrier) sheet.getRange(matchedRow, 12).setValue(data.carrier);           // Col 12: Shipment Carrier
       if (data.waybill) sheet.getRange(matchedRow, 13).setValue(String(data.waybill));   // Col 13: Waybill Number
@@ -347,16 +359,16 @@ function doGet(e) {
     }
   });
 
-  // Move shipment file and matching order file to archive/YYYY-MM-DD/ and update Google Sheet
+  // Move ONLY shipment file to archive/YYYY-MM-DD/ and update Google Sheet
   async function handleArchiveShipment(fileName, ccmOrderId) {
     const n = new Date();
     const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
-    const confirmMsg = `Move shipment "${fileName}" and matching CCM #${ccmOrderId || 'N/A'} order file to /for_adeeva/archive/${dateStr}/ and update Google Sheet?`;
+    const confirmMsg = `Move shipment file "${fileName}" to /for_adeeva/archive/${dateStr}/?`;
     if (!confirm(confirmMsg)) return;
 
     const currentWebhookUrl = (sheetWebhookUrl?.value || '').trim();
 
-    log(`[Archive] Moving ${fileName} (CCM #${ccmOrderId}) to archive/${dateStr}/...`);
+    log(`[Archive] Moving shipment file ${fileName}...`);
     showBanner('info', `Moving ${fileName} to /for_adeeva/archive/${dateStr}/...`);
 
     try {
@@ -373,7 +385,7 @@ function doGet(e) {
 
       if (data.success) {
         const folderName = data.dateFolder || dateStr;
-        const msg = data.message || `Moved ${fileName} and matching order file to archive/${folderName}/`;
+        const msg = data.message || `Moved ${fileName} to archive/${folderName}/`;
         showBanner('success', msg);
         log(`[Archive SUCCESS] ${msg}`);
 
@@ -385,7 +397,7 @@ function doGet(e) {
           }
         }
 
-        // Mark shipment as moved
+        // Mark only this shipment as moved
         currentShipments.forEach(s => {
           if (s.fileName === fileName) {
             s.isMoved = true;
@@ -393,56 +405,134 @@ function doGet(e) {
           }
         });
 
-        // Mark matching order file(s) as moved
-        const matchingOrders = data.matchingOrders || [];
+        // Update badge counts for remaining active shipments
+        const activeShipments = currentShipments.filter(s => !s.isMoved).length;
+        shipmentCountBadge.textContent = `${activeShipments} files`;
+        tabShipmentCount.textContent = activeShipments;
+
+        // Re-render shipments table
+        renderShipmentsTable(currentShipments);
+      } else {
+        showBanner('error', `Failed to archive shipment: ${data.message}`);
+        log(`[Archive FAILED] ${data.message}`);
+      }
+    } catch (err) {
+      showBanner('error', `Network error archiving shipment: ${err.message}`);
+      log(`[Archive ERROR] ${err.message}`);
+    }
+  }
+
+  // Move ONLY order file to archive/YYYY-MM-DD/ and update Google Sheet CCM ID
+  async function handleArchiveOrder(fileName, ccmOrderId, orderNumber) {
+    const n = new Date();
+    const dateStr = `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, '0')}-${String(n.getDate()).padStart(2, '0')}`;
+    const confirmMsg = `Move order file "${fileName}" (PO #${orderNumber || 'N/A'}) to /for_adeeva/archive/${dateStr}/?`;
+    if (!confirm(confirmMsg)) return;
+
+    const currentWebhookUrl = (sheetWebhookUrl?.value || '').trim();
+
+    log(`[Archive] Moving order file ${fileName}...`);
+    showBanner('info', `Moving ${fileName} to /for_adeeva/archive/${dateStr}/...`);
+
+    try {
+      const res = await fetch('/api/sheet-sync/archive-order', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderFileName: fileName,
+          ccmOrderId: ccmOrderId,
+          orderNumber: orderNumber,
+          webhookUrl: currentWebhookUrl
+        })
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        const folderName = data.dateFolder || dateStr;
+        const msg = data.message || `Moved ${fileName} to archive/${folderName}/`;
+        showBanner('success', msg);
+        log(`[Archive SUCCESS] ${msg}`);
+
+        if (data.sheetResult) {
+          if (data.sheetResult.status === 'success') {
+            log(`[Google Sheet SUCCESS] Row ${data.sheetResult.matchedRow} updated with CCM Order ID (${data.sheetResult.ccmOrderId || '-'})`);
+          } else if (data.sheetResult.message) {
+            log(`[Google Sheet NOTICE] ${data.sheetResult.message}`);
+          }
+        }
+
+        // Mark only this order as moved
         currentOrders.forEach(o => {
-          if (matchingOrders.includes(o.fileName) || (ccmOrderId && o.ccmOrderId === ccmOrderId)) {
+          if (o.fileName === fileName) {
             o.isMoved = true;
             o.movedDate = folderName;
           }
         });
 
-        // Update badge counts for remaining active files
+        // Update badge counts for remaining active orders
         const activeOrders = currentOrders.filter(o => !o.isMoved).length;
-        const activeShipments = currentShipments.filter(s => !s.isMoved).length;
         orderCountBadge.textContent = `${activeOrders} files`;
-        shipmentCountBadge.textContent = `${activeShipments} files`;
+        tabOrderCount.textContent = activeOrders;
 
-        // Re-render both tables with moved badges
+        // Re-render orders table
         renderOrdersTable(currentOrders);
-        renderShipmentsTable(currentShipments);
       } else {
-        showBanner('error', `Failed to archive: ${data.message}`);
+        showBanner('error', `Failed to archive order: ${data.message}`);
         log(`[Archive FAILED] ${data.message}`);
       }
     } catch (err) {
-      showBanner('error', `Network error archiving file: ${err.message}`);
+      showBanner('error', `Network error archiving order: ${err.message}`);
       log(`[Archive ERROR] ${err.message}`);
     }
   }
 
   function renderOrdersTable(orders) {
     if (!orders || orders.length === 0) {
-      ordersTableBody.innerHTML = `<tr><td colspan="5" style="text-align:center; color:var(--text-muted); padding: 2rem;">No order files found in /for_adeeva.</td></tr>`;
+      ordersTableBody.innerHTML = `<tr><td colspan="6" style="text-align:center; color:var(--text-muted); padding: 2rem;">No order files found in /for_adeeva.</td></tr>`;
       return;
     }
 
     ordersTableBody.innerHTML = orders.map(o => {
       const isMoved = !!o.isMoved;
-      const statusBadge = isMoved
+      const statusBadge = `<span class="history-ftp-badge uploaded">${escapeHtml(o.status || 'success')}</span>`;
+
+      const actionHtml = isMoved
         ? `<span class="moved-badge">Moved (${escapeHtml(o.movedDate)})</span>`
-        : `<span class="history-ftp-badge uploaded">${escapeHtml(o.status || 'Imported')}</span>`;
+        : `<button type="button" class="btn btn-secondary btn-sm move-order-btn" data-file="${escapeHtml(o.fileName)}" data-ccm="${escapeHtml(o.ccmOrderId || '')}" data-po="${escapeHtml(o.orderNumber || '')}" style="font-size:0.75rem; padding: 0.35rem 0.75rem;" title="Move order file to archive">
+             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;">
+               <polyline points="21 8 21 21 3 21 3 8"></polyline>
+               <rect x="1" y="3" width="22" height="5"></rect>
+               <line x1="10" y1="12" x2="14" y2="12"></line>
+             </svg>
+             Move to Archive
+           </button>`;
+
+      const fileNameHtml = isMoved
+        ? `<span class="moved-badge" style="text-decoration: line-through;">${escapeHtml(o.fileName)}</span>`
+        : `<a href="javascript:void(0)" class="file-link order-link" data-file="${escapeHtml(o.fileName)}" data-ccm="${escapeHtml(o.ccmOrderId || '')}" data-po="${escapeHtml(o.orderNumber || '')}" title="Click to move order to archive">${escapeHtml(o.fileName)}</a>`;
 
       return `
         <tr style="${isMoved ? 'background:#f8fafc; opacity:0.75;' : ''}">
-          <td><span class="${isMoved ? 'moved-badge' : 'file-link'}" style="${isMoved ? 'text-decoration: line-through;' : ''}">${escapeHtml(o.fileName)}</span></td>
+          <td>${fileNameHtml}</td>
           <td><span class="order-pill">${escapeHtml(o.orderNumber || '-')}</span></td>
           <td><span class="ccm-pill">${escapeHtml(o.ccmOrderId || '-')}</span></td>
           <td>${statusBadge}</td>
           <td style="color:var(--text-muted); font-size:0.8rem;">${escapeHtml(o.date ? new Date(o.date).toLocaleString() : '-')}</td>
+          <td>${actionHtml}</td>
         </tr>
       `;
     }).join('');
+
+    // Attach click listeners to order buttons and file links
+    ordersTableBody.querySelectorAll('.move-order-btn, .order-link').forEach(el => {
+      el.addEventListener('click', (e) => {
+        e.preventDefault();
+        const f = el.dataset.file;
+        const ccm = el.dataset.ccm;
+        const po = el.dataset.po;
+        handleArchiveOrder(f, ccm, po);
+      });
+    });
   }
 
   function renderShipmentsTable(shipments) {
@@ -455,7 +545,7 @@ function doGet(e) {
       const isMoved = !!s.isMoved;
       const actionHtml = isMoved
         ? `<span class="moved-badge">Moved (${escapeHtml(s.movedDate)})</span>`
-        : `<button type="button" class="btn btn-secondary btn-sm move-btn" data-file="${escapeHtml(s.fileName)}" data-ccm="${escapeHtml(s.ccmOrderId || '')}" style="font-size:0.75rem; padding: 0.35rem 0.75rem;" title="Move shipment and matching order to archive and update Google Sheet">
+        : `<button type="button" class="btn btn-secondary btn-sm move-btn" data-file="${escapeHtml(s.fileName)}" data-ccm="${escapeHtml(s.ccmOrderId || '')}" style="font-size:0.75rem; padding: 0.35rem 0.75rem;" title="Move shipment file to archive">
              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:middle; margin-right:4px;">
                <polyline points="21 8 21 21 3 21 3 8"></polyline>
                <rect x="1" y="3" width="22" height="5"></rect>
@@ -466,7 +556,7 @@ function doGet(e) {
 
       const fileNameHtml = isMoved
         ? `<span class="moved-badge" style="text-decoration: line-through;">${escapeHtml(s.fileName)}</span>`
-        : `<a href="javascript:void(0)" class="file-link shipment-link" data-file="${escapeHtml(s.fileName)}" data-ccm="${escapeHtml(s.ccmOrderId || '')}" title="Click to move to archive and update Google Sheet">${escapeHtml(s.fileName)}</a>`;
+        : `<a href="javascript:void(0)" class="file-link shipment-link" data-file="${escapeHtml(s.fileName)}" data-ccm="${escapeHtml(s.ccmOrderId || '')}" title="Click to move shipment to archive">${escapeHtml(s.fileName)}</a>`;
 
       return `
         <tr style="${isMoved ? 'background:#f8fafc; opacity:0.75;' : ''}">

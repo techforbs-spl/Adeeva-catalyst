@@ -224,10 +224,10 @@ async function testGoogleWebhook(webhookUrl) {
 }
 
 /**
- * Moves a shipment file and its matching order file(s) (by ccm_order_id)
- * into /for_adeeva/archive/YYYY-MM-DD/
+ * Moves ONLY the shipment file into /for_adeeva/archive/YYYY-MM-DD/
+ * and updates Google Sheet last 4 columns if configured.
  */
-async function archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, webhookUrl, sheetUrl) {
+async function archiveShipmentFile(ftpConfig, shipmentFileName, ccmOrderId, webhookUrl, sheetUrl) {
   const client = new ftp.Client();
   client.ftp.verbose = false;
 
@@ -276,30 +276,27 @@ async function archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, 
       }
     }
 
-    // Find matching order file(s) in /for_adeeva and extract customer_po
-    const list = await client.list();
-    const orderFiles = list.filter(f => !f.isDirectory && f.name.toLowerCase().startsWith('order-') && f.name.toLowerCase().endsWith('.xml'));
-
-    const matchingOrderFileNames = [];
+    // Try to find customer_po from any matching order file for exact Sheet matching
     let customerPo = '';
-
     if (targetCcmId) {
-      for (const ofile of orderFiles) {
-        try {
-          const orderXml = await downloadFileContent(client, ofile.name);
-          const ccmMatch = orderXml.match(/<ccm_order_id>([^<]+)<\/ccm_order_id>/i) || orderXml.match(/ccm_order_id=["']([^"']+)["']/i);
-          if (ccmMatch && (ccmMatch[1] || ccmMatch[2] || '').trim() === targetCcmId) {
-            matchingOrderFileNames.push(ofile.name);
-            const poMatch = orderXml.match(/customer_po=["']([^"']+)["']/i) || orderXml.match(/<customer_po>([^<]+)<\/customer_po>/i);
-            if (poMatch && !customerPo) customerPo = (poMatch[1] || poMatch[2] || '').trim();
-            const custMatch = orderXml.match(/customer_order_id=["']([^"']+)["']/i) || orderXml.match(/<customer_order_id>([^<]+)<\/customer_order_id>/i);
-            if (custMatch && !customerOrderId) customerOrderId = (custMatch[1] || custMatch[2] || '').trim();
-          }
-        } catch (_) {}
-      }
+      try {
+        const list = await client.list();
+        const orderFiles = list.filter(f => !f.isDirectory && f.name.toLowerCase().startsWith('order-') && f.name.toLowerCase().endsWith('.xml'));
+        for (const ofile of orderFiles) {
+          try {
+            const orderXml = await downloadFileContent(client, ofile.name);
+            const ccmMatch = orderXml.match(/<ccm_order_id>([^<]+)<\/ccm_order_id>/i) || orderXml.match(/ccm_order_id=["']([^"']+)["']/i);
+            if (ccmMatch && (ccmMatch[1] || ccmMatch[2] || '').trim() === targetCcmId) {
+              const poMatch = orderXml.match(/customer_po=["']([^"']+)["']/i) || orderXml.match(/<customer_po>([^<]+)<\/customer_po>/i);
+              if (poMatch && !customerPo) customerPo = (poMatch[1] || poMatch[2] || '').trim();
+              break;
+            }
+          } catch (_) {}
+        }
+      } catch (_) {}
     }
 
-    // Format current date as YYYY-MM-DD matching existing archive folders
+    // Format current date as YYYY-MM-DD
     const now = new Date();
     const year = now.getFullYear();
     const month = String(now.getMonth() + 1).padStart(2, '0');
@@ -308,45 +305,19 @@ async function archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, 
 
     // Target archive folder: archive/YYYY-MM-DD
     const archiveRelPath = `archive/${dateStr}`;
-    // ensureDir reuses existing date folder if it exists, or creates it if not
     await client.ensureDir(archiveRelPath);
-
-    // Return to /for_adeeva
     await client.cd(baseFolder);
 
-    const movedFiles = [];
-    const errors = [];
-
-    // 1. Move shipment file
-    if (shipmentFileName) {
-      try {
-        const destShipment = `archive/${dateStr}/${shipmentFileName}`;
-        await client.rename(shipmentFileName, destShipment);
-        movedFiles.push({ file: shipmentFileName, type: 'shipment', destination: destShipment });
-      } catch (shipErr) {
-        errors.push(`Failed to move shipment ${shipmentFileName}: ${shipErr.message}`);
-      }
-    }
-
-    // 2. Move matching order file(s)
-    for (const ordFile of matchingOrderFileNames) {
-      try {
-        const destOrder = `archive/${dateStr}/${ordFile}`;
-        await client.rename(ordFile, destOrder);
-        movedFiles.push({ file: ordFile, type: 'order', destination: destOrder });
-      } catch (ordErr) {
-        errors.push(`Failed to move order ${ordFile}: ${ordErr.message}`);
-      }
-    }
+    // Move ONLY shipment file
+    const destShipment = `archive/${dateStr}/${shipmentFileName}`;
+    await client.rename(shipmentFileName, destShipment);
 
     client.close();
 
-    const success = movedFiles.length > 0;
-
-    // 3. Update Google Sheet last 4 columns if webhook URL is configured
+    // Update Google Sheet if webhook configured
     let sheetResult = null;
     const targetUrl = (webhookUrl || '').trim();
-    if (success && targetUrl) {
+    if (targetUrl) {
       try {
         const sheetPayload = {
           action: 'update_shipment_columns',
@@ -365,25 +336,122 @@ async function archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, 
       }
     }
 
-    let resultMsg = success
-      ? `Successfully moved shipment ${shipmentFileName}${matchingOrderFileNames.length > 0 ? ' and matching order (' + matchingOrderFileNames.join(', ') + ')' : ''} to archive/${dateStr}/`
-      : `Could not move files: ${errors.join(', ')}`;
-
+    let resultMsg = `Successfully moved shipment ${shipmentFileName} to archive/${dateStr}/`;
     if (sheetResult && sheetResult.status === 'success') {
-      resultMsg += ` and updated Google Sheet (Row ${sheetResult.matchedRow || ''}) with CCM ID, Carrier, Waybill, and Date Shipped!`;
+      resultMsg += ` and updated Google Sheet (Row ${sheetResult.matchedRow || ''}) with shipment details!`;
     } else if (sheetResult && sheetResult.message) {
       resultMsg += ` (Sheet update: ${sheetResult.message})`;
     }
 
     return {
-      success,
+      success: true,
       dateFolder: dateStr,
       archivePath: `/for_adeeva/archive/${dateStr}`,
       movedShipment: shipmentFileName,
-      matchingOrders: matchingOrderFileNames,
-      movedFiles,
       sheetResult,
-      errors: errors.length > 0 ? errors : undefined,
+      message: resultMsg
+    };
+
+  } catch (err) {
+    client.close();
+    return {
+      success: false,
+      message: `FTP operation error: ${err.message}`
+    };
+  }
+}
+
+/**
+ * Moves ONLY the order file into /for_adeeva/archive/YYYY-MM-DD/
+ * and updates Google Sheet CCM Order ID if configured.
+ */
+async function archiveOrderFile(ftpConfig, orderFileName, ccmOrderId, orderNumber, webhookUrl, sheetUrl) {
+  const client = new ftp.Client();
+  client.ftp.verbose = false;
+
+  try {
+    await client.access({
+      host: ftpConfig.host,
+      port: ftpConfig.port ? parseInt(ftpConfig.port, 10) : 21,
+      user: ftpConfig.user || 'anonymous',
+      password: ftpConfig.password || '',
+      secure: ftpConfig.secure === true || ftpConfig.secure === 'true' || ftpConfig.secure === 'explicit',
+      secureOptions: { rejectUnauthorized: false }
+    });
+
+    const baseFolder = '/for_adeeva';
+    await client.cd(baseFolder);
+
+    let targetCcmId = (ccmOrderId || '').trim();
+    let targetOrderNum = (orderNumber || '').trim();
+    let customerOrderId = '';
+
+    if (orderFileName) {
+      try {
+        const orderXml = await downloadFileContent(client, orderFileName);
+        const ccmMatch = orderXml.match(/<ccm_order_id>([^<]+)<\/ccm_order_id>/i) || orderXml.match(/ccm_order_id=["']([^"']+)["']/i);
+        if (ccmMatch && !targetCcmId) targetCcmId = (ccmMatch[1] || ccmMatch[2] || '').trim();
+
+        const poMatch = orderXml.match(/customer_po=["']([^"']+)["']/i) || orderXml.match(/<customer_po>([^<]+)<\/customer_po>/i);
+        if (poMatch && !targetOrderNum) targetOrderNum = (poMatch[1] || poMatch[2] || '').trim();
+
+        const custMatch = orderXml.match(/customer_order_id=["']([^"']+)["']/i) || orderXml.match(/<customer_order_id>([^<]+)<\/customer_order_id>/i);
+        if (custMatch) customerOrderId = (custMatch[1] || custMatch[2] || '').trim();
+      } catch (e) {
+        console.warn('Could not read order XML:', e.message);
+      }
+    }
+
+    // Format current date as YYYY-MM-DD
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    const dateStr = `${year}-${month}-${day}`;
+
+    // Target archive folder: archive/YYYY-MM-DD
+    const archiveRelPath = `archive/${dateStr}`;
+    await client.ensureDir(archiveRelPath);
+    await client.cd(baseFolder);
+
+    // Move ONLY order file
+    const destOrder = `archive/${dateStr}/${orderFileName}`;
+    await client.rename(orderFileName, destOrder);
+
+    client.close();
+
+    // Update Google Sheet if webhook configured
+    let sheetResult = null;
+    const targetUrl = (webhookUrl || '').trim();
+    if (targetUrl) {
+      try {
+        const sheetPayload = {
+          action: 'update_order_ccm',
+          sheetUrl: sheetUrl || '',
+          orderNumber: targetOrderNum,
+          orderId: customerOrderId || (targetOrderNum ? targetOrderNum.replace(/\D/g, '') : ''),
+          ccmOrderId: targetCcmId
+        };
+        sheetResult = await sendToGoogleSheetWebhook(targetUrl, sheetPayload);
+      } catch (sheetErr) {
+        console.warn('Google Sheet update error on archive:', sheetErr.message);
+        sheetResult = { status: 'error', message: sheetErr.message };
+      }
+    }
+
+    let resultMsg = `Successfully moved order ${orderFileName} to archive/${dateStr}/`;
+    if (sheetResult && sheetResult.status === 'success') {
+      resultMsg += ` and updated Google Sheet (Row ${sheetResult.matchedRow || ''}) with CCM Order ID!`;
+    } else if (sheetResult && sheetResult.message) {
+      resultMsg += ` (Sheet update: ${sheetResult.message})`;
+    }
+
+    return {
+      success: true,
+      dateFolder: dateStr,
+      archivePath: `/for_adeeva/archive/${dateStr}`,
+      movedOrder: orderFileName,
+      sheetResult,
       message: resultMsg
     };
 
@@ -400,6 +468,8 @@ module.exports = {
   fetchFtpOrdersAndShipments,
   sendToGoogleSheetWebhook,
   testGoogleWebhook,
-  archiveShipmentAndOrder,
+  archiveShipmentAndOrder: archiveShipmentFile,
+  archiveShipmentFile,
+  archiveOrderFile,
   normalizeCarrier
 };
