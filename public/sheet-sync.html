@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Adeeva Catalyst — FTP Order & Shipment Archive Manager</title>
+  <link rel="stylesheet" href="style.css?v=3.2">
+  <link rel="icon" href="adeeva-logo.png">
+  <style>
+    .archive-container {
+      max-width: 1480px;
+      margin: 1.5rem auto;
+      padding: 0 1.75rem;
+    }
+
+    .metrics-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 1rem;
+      margin-bottom: 1.25rem;
+    }
+
+    @media (max-width: 992px) {
+      .metrics-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+    }
+
+    @media (max-width: 576px) {
+      .metrics-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .metric-card {
+      padding: 1.15rem 1.35rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .metric-card .metric-label {
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+    }
+
+    .metric-card .metric-val {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: var(--text-dark);
+      font-family: 'Source Sans Pro', sans-serif;
+    }
+
+    .archive-controls-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 1fr;
+      gap: 1.5rem;
+      align-items: start;
+    }
+
+    @media (max-width: 900px) {
+      .archive-controls-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .table-container {
+      overflow-x: auto;
+      border: 1px solid var(--border-light);
+      border-radius: var(--radius-sm);
+      background: #ffffff;
+    }
+
+    table.adeeva-data-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+    }
+
+    table.adeeva-data-table th {
+      background: var(--bg-subtle);
+      color: var(--text-dark);
+      font-weight: 700;
+      text-align: left;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-light);
+      white-space: nowrap;
+    }
+
+    table.adeeva-data-table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-body);
+      vertical-align: middle;
+    }
+
+    table.adeeva-data-table tr:hover {
+      background: rgba(0, 158, 183, 0.02);
+    }
+
+    .order-pill {
+      display: inline-block;
+      background: rgba(115, 71, 36, 0.08);
+      color: var(--adeeva-bronze);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .ccm-pill {
+      display: inline-block;
+      background: rgba(0, 158, 183, 0.1);
+      color: var(--adeeva-teal-dark);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      font-weight: 700;
+      padding: 0.2rem 0.55rem;
+      border-radius: var(--radius-sm);
+    }
+
+    .file-link {
+      color: var(--adeeva-teal-dark);
+      text-decoration: none;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.82rem;
+      transition: var(--transition);
+    }
+
+    .file-link:hover {
+      color: var(--adeeva-teal);
+      text-decoration: underline;
+    }
+
+    .moved-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: #f1f5f9;
+      color: #64748b;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-light);
+    }
+
+    .carrier-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      background: rgba(46, 125, 50, 0.08);
+      color: #2e7d32;
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.65rem;
+      border-radius: 12px;
+      border: 1px solid rgba(46, 125, 50, 0.2);
+    }
+
+    .log-box {
+      background: #0f172a;
+      color: #38bdf8;
+      padding: 1rem;
+      border-radius: var(--radius-sm);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      height: 155px;
+      overflow-y: auto;
+      line-height: 1.55;
+      border: 1px solid #1e293b;
+    }
+
+    .status-banner {
+      padding: 0.85rem 1.25rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 1.25rem;
+      display: none;
+    }
+
+    .status-banner.show {
+      display: block;
+    }
+
+    .status-banner.success {
+      background: #ecfdf5;
+      color: #065f46;
+      border: 1px solid #a7f3d0;
+    }
+
+    .status-banner.error {
+      background: #fef2f2;
+      color: #991b1b;
+      border: 1px solid #fecaca;
+    }
+
+    .status-banner.info {
+      background: var(--adeeva-teal-light);
+      color: var(--adeeva-teal-dark);
+      border: 1px solid rgba(0, 158, 183, 0.25);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Branding Header & Navigation (Matches Main Page Exactly) -->
+  <header class="app-header">
+    <div class="header-top-row">
+      <div class="logo-area">
+        <a href="https://www.adeeva.com/" target="_blank" title="Visit Adeeva Nutritionals Official Site">
+          <img src="adeeva-logo.png" alt="Adeeva Nutritionals" class="adeeva-main-logo">
+        </a>
+        <div class="app-badge-tag">
+          <h1>Catalyst Order Dispatch</h1>
+          <p>Electronic Data Interchange &amp; FTP Gateway</p>
+        </div>
+      </div>
+      <div class="header-right-tools">
+        <div class="header-actions">
+          <a href="/" class="btn btn-secondary btn-sm" title="Back to Order Dispatch Form">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+            Order Dispatch Form
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Official Adeeva Bronze Navigation Bar -->
+    <div class="adeeva-nav-bar">
+      <div class="adeeva-nav-content">
+        <ul class="nav-links">
+          <li><a href="/">Order Dispatch</a></li>
+          <li><a href="/#history">Order History &amp; 4 Files</a></li>
+          <li class="active"><a href="/sheet-sync">FTP Archive</a></li>
+          <li><a href="https://www.adeeva.com/" target="_blank">Adeeva.com ↗</a></li>
+        </ul>
+        <div class="nav-system-status">
+          <span class="status-dot"></span>
+          <span>Catalyst Engine Active</span>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Workspace -->
+  <main class="archive-container">
+
+    <div id="statusBanner" class="status-banner"></div>
+
+    <!-- Metrics Cards Row -->
+    <div class="metrics-grid">
+      <div class="glass-panel metric-card">
+        <span class="metric-label">Remote Source Folder</span>
+        <span class="metric-val" style="font-size: 1.15rem; color: var(--text-dark);">/for_adeeva</span>
+      </div>
+      <div class="glass-panel metric-card">
+        <span class="metric-label">Order Confirmations</span>
+        <span class="metric-val" id="orderCountBadge" style="color: var(--adeeva-bronze);">0 files</span>
+      </div>
+      <div class="glass-panel metric-card">
+        <span class="metric-label">Shipment Files</span>
+        <span class="metric-val" id="shipmentCountBadge" style="color: var(--adeeva-teal);">0 files</span>
+      </div>
+      <div class="glass-panel metric-card">
+        <span class="metric-label">Target Archive Folder</span>
+        <span class="metric-val" id="targetArchiveBadge" style="font-size: 1.05rem; color: #2e7d32;">/archive/YYYY-MM-DD/</span>
+      </div>
+    </div>
+
+    <!-- FTP Folder & Archive Controls Panel -->
+    <section class="glass-panel form-section">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          </span>
+          FTP Order &amp; Shipment Manager
+        </div>
+        <span class="label-hint">Inspect pending FTP files and move completed shipments into archive</span>
+      </div>
+
+      <div class="archive-controls-grid">
+        <div>
+          <div class="form-group" style="margin-bottom: 1rem;">
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-dark);">FTP Target Directory</label>
+            <input type="text" id="ftpFolder" value="/for_adeeva" class="form-control" readonly style="background: var(--bg-subtle); cursor: not-allowed; font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+          </div>
+
+          <div style="display: flex; gap: 0.75rem; flex-wrap: wrap; margin-top: 1rem;">
+            <button type="button" id="previewBtn" class="btn btn-teal">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              Fetch &amp; Preview FTP Data
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-dark); display: block; margin-bottom: 0.5rem;">Live Activity Log</label>
+          <div id="syncLog" class="log-box">[System Ready] Click "Fetch &amp; Preview FTP Data" to load files from /for_adeeva.</div>
+        </div>
+      </div>
+    <!-- Google Sheet Auto-Update Panel (Updates Last 4 Columns) -->
+    <section class="glass-panel form-section" style="margin-top: 1.25rem;">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon" style="background: rgba(15, 157, 88, 0.12); color: #0f9d58;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          </span>
+          Google Sheet Direct Auto-Update (Last 4 Columns)
+        </div>
+        <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <span id="sheetStatusBadge" style="display: inline-flex; align-items: center; gap: 0.35rem; background: #f1f5f9; color: #64748b; font-size: 0.75rem; font-weight: 700; padding: 0.25rem 0.65rem; border-radius: 12px; border: 1px solid var(--border-light);">
+            <span id="sheetStatusDot" style="width: 8px; height: 8px; border-radius: 50%; background: #94a3b8; display: inline-block;"></span>
+            <span id="sheetStatusText">Checking URL...</span>
+          </span>
+        </div>
+      </div>
+
+      <!-- Information Box explaining the 14 columns -->
+      <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 0.85rem 1.15rem; margin-bottom: 1.25rem; font-size: 0.82rem; color: var(--text-dark); line-height: 1.5;">
+        <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.35rem;">
+          <span style="font-weight: 700; color: #0f9d58;">✓ 14-Column Sheet Target:</span>
+          <span>Columns 1 to 10 are preserved. Moving files to archive fills the remaining 4 columns automatically:</span>
+        </div>
+        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.4rem; font-family: 'JetBrains Mono', monospace; font-size: 0.75rem;">
+          <span style="background: #e2e8f0; color: #475569; padding: 0.15rem 0.5rem; border-radius: 4px;">1. No</span>
+          <span style="background: #e2e8f0; color: #475569; padding: 0.15rem 0.5rem; border-radius: 4px;">2. Order ID</span>
+          <span style="background: #e2e8f0; color: #475569; padding: 0.15rem 0.5rem; border-radius: 4px;">3. Order Number</span>
+          <span style="background: #e2e8f0; color: #475569; padding: 0.15rem 0.5rem; border-radius: 4px;">4–10. Details</span>
+          <span style="background: rgba(15, 157, 88, 0.15); color: #0f9d58; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid rgba(15, 157, 88, 0.3);">11. CCM Order ID</span>
+          <span style="background: rgba(15, 157, 88, 0.15); color: #0f9d58; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid rgba(15, 157, 88, 0.3);">12. Shipment Carrier</span>
+          <span style="background: rgba(15, 157, 88, 0.15); color: #0f9d58; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid rgba(15, 157, 88, 0.3);">13. Waybill Number</span>
+          <span style="background: rgba(15, 157, 88, 0.15); color: #0f9d58; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 4px; border: 1px solid rgba(15, 157, 88, 0.3);">14. Date of Shipped</span>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr auto; gap: 0.75rem; align-items: end;">
+        <div class="form-group" style="margin-bottom: 0;">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-dark); display: flex; justify-content: space-between;">
+            <span>Google Apps Script Web App URL</span>
+            <span style="font-weight: 400; color: var(--text-muted); font-size: 0.75rem;">(Connects securely to your Google Sheet)</span>
+          </label>
+          <input type="url" id="sheetWebhookUrl" class="form-control" placeholder="https://script.google.com/macros/s/.../exec" style="font-family: 'JetBrains Mono', monospace; font-size: 0.85rem;">
+        </div>
+        <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" id="saveWebhookBtn" class="btn btn-primary" style="white-space: nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            Save URL
+          </button>
+          <button type="button" id="testWebhookBtn" class="btn btn-secondary" style="white-space: nowrap;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Test Connection
+          </button>
+        </div>
+      </div>
+
+      <!-- Expandable Google Apps Script Code & 3-Step Setup -->
+      <details style="margin-top: 1rem; background: var(--bg-subtle); border: 1px solid var(--border-light); border-radius: var(--radius-sm); padding: 0.75rem 1rem;">
+        <summary style="font-weight: 600; color: var(--text-dark); cursor: pointer; font-size: 0.85rem; user-select: none;">
+          ⚡ <strong>1-Minute Setup Guide &amp; Google Apps Script Code</strong> (Click to view code tailored for your 14 columns)
+        </summary>
+        <div style="margin-top: 0.75rem; font-size: 0.82rem; color: var(--text-dark); line-height: 1.6;">
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 0.75rem; margin-bottom: 0.75rem;">
+            <div style="background: #ffffff; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+              <strong>Step 1: Open Apps Script</strong>
+              <div style="color: var(--text-muted); font-size: 0.78rem;">In your Google Sheet, open menu: <code>Extensions &rarr; Apps Script</code>.</div>
+            </div>
+            <div style="background: #ffffff; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+              <strong>Step 2: Paste Script Code</strong>
+              <div style="color: var(--text-muted); font-size: 0.78rem;">Delete any existing placeholder and paste the code snippet below.</div>
+            </div>
+            <div style="background: #ffffff; padding: 0.65rem 0.85rem; border-radius: var(--radius-sm); border: 1px solid var(--border-light);">
+              <strong>Step 3: Deploy as Web App</strong>
+              <div style="color: var(--text-muted); font-size: 0.78rem;">Click <strong>Deploy &rarr; New deployment &rarr; Web app</strong>. Set Access to <em>Anyone</em> and click Deploy. Paste URL above!</div>
+            </div>
+          </div>
+
+          <div style="position: relative;">
+            <button type="button" id="copyScriptBtn" class="btn btn-secondary btn-sm" style="position: absolute; right: 10px; top: 10px; z-index: 2;">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              Copy Script Code
+            </button>
+            <pre id="scriptCodePre" style="background: #0f172a; color: #38bdf8; padding: 1rem; border-radius: var(--radius-sm); font-family: 'JetBrains Mono', monospace; font-size: 0.75rem; overflow-x: auto; max-height: 240px; border: 1px solid #1e293b; line-height: 1.5;"></pre>
+          </div>
+        </div>
+      </details>
+    </section>
+
+    <!-- Data Tables Panel -->
+    <section class="glass-panel form-section" style="margin-top: 1.25rem;">
+      <div class="section-header">
+        <div class="section-title">
+          <span class="section-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+          </span>
+          FTP Files List
+        </div>
+        <div class="history-filter-chips">
+          <button type="button" class="filter-chip active-chip tab-btn" data-tab="tabShipments">
+            Shipments (<span id="tabShipmentCount">0</span>)
+          </button>
+          <button type="button" class="filter-chip tab-btn" data-tab="tabOrders">
+            Orders (<span id="tabOrderCount">0</span>)
+          </button>
+        </div>
+      </div>
+
+      <!-- Shipments Tab -->
+      <div id="tabShipments" class="tab-pane active">
+        <div class="table-container">
+          <table class="adeeva-data-table">
+            <thead>
+              <tr>
+                <th>Shipment File</th>
+                <th>CCM Order ID</th>
+                <th>Order Number</th>
+                <th>Carrier</th>
+                <th>Waybill / Tracking #</th>
+                <th>Shipment Date</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="shipmentsTableBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-muted); padding: 2rem;">No data loaded yet. Click "Fetch &amp; Preview FTP Data" above.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Orders Tab -->
+      <div id="tabOrders" class="tab-pane">
+        <div class="table-container">
+          <table class="adeeva-data-table">
+            <thead>
+              <tr>
+                <th>Order File</th>
+                <th>Order Number (PO)</th>
+                <th>CCM Order ID</th>
+                <th>Status</th>
+                <th>Date Modified</th>
+              </tr>
+            </thead>
+            <tbody id="ordersTableBody">
+              <tr>
+                <td colspan="5" style="text-align: center; color: var(--text-muted); padding: 2rem;">No data loaded yet. Click "Fetch &amp; Preview FTP Data" above.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script src="sheet-sync.js"></script>
+</body>
+</html>

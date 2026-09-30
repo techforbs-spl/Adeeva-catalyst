@@ -7,6 +7,7 @@ const express = require('express');
 const { generateInvoicePdf } = require('./pdfGenerator');
 const { generateCustomerXml, generateShiptoXml, generateOrderXml } = require('./xmlGenerator');
 const { testFtpConnection, uploadFilesToFtp, listFtpDirectory, createFtpDirectory } = require('./ftpService');
+const { fetchFtpOrdersAndShipments, sendToGoogleSheetWebhook, testGoogleWebhook, archiveShipmentAndOrder } = require('./googleSheetSyncService');
 
 const isVercel = !!process.env.VERCEL;
 const OUTPUT_DIR = isVercel ? path.join(os.tmpdir(), 'adeeva-output') : path.join(__dirname, 'output');
@@ -1231,6 +1232,149 @@ app.get('/api/sample', (req, res) => {
     total: 332.39
   };
   res.json(sample);
+});
+
+// ==========================================
+// Google Sheets Synchronization Routes
+// ==========================================
+
+// Dedicated page route
+app.get('/sheet-sync', (req, res) => {
+  const syncHtmlPath = path.join(__dirname, 'public', 'sheet-sync.html');
+  if (fs.existsSync(syncHtmlPath)) {
+    return res.sendFile(syncHtmlPath);
+  }
+  res.status(404).send('Sheet Sync page not found.');
+});
+
+// Get current Google Sheet Webhook status
+app.get('/api/sheet-sync/status', (req, res) => {
+  const env = loadEnvDynamically();
+  const webhookUrl = env.GOOGLE_SHEET_WEBHOOK_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL || '';
+  const sheetUrl = env.GOOGLE_SHEET_URL || process.env.GOOGLE_SHEET_URL || '';
+  res.json({
+    configured: Boolean(webhookUrl),
+    webhookUrl: webhookUrl || '',
+    sheetUrl: sheetUrl || ''
+  });
+});
+
+// Save Webhook URL / Sheet URL to .env
+app.post('/api/sheet-sync/save-webhook', (req, res) => {
+  try {
+    const { webhookUrl, sheetUrl } = req.body;
+    if (!webhookUrl && !sheetUrl) {
+      return res.status(400).json({ success: false, message: 'Please provide a Webhook URL or Sheet URL.' });
+    }
+    const envPath = path.join(__dirname, '.env');
+    let content = '';
+    if (fs.existsSync(envPath)) {
+      content = fs.readFileSync(envPath, 'utf8');
+    }
+    if (webhookUrl !== undefined) {
+      if (content.includes('GOOGLE_SHEET_WEBHOOK_URL=')) {
+        content = content.replace(/GOOGLE_SHEET_WEBHOOK_URL=.*/g, `GOOGLE_SHEET_WEBHOOK_URL=${webhookUrl.trim()}`);
+      } else {
+        content += `\nGOOGLE_SHEET_WEBHOOK_URL=${webhookUrl.trim()}\n`;
+      }
+      process.env.GOOGLE_SHEET_WEBHOOK_URL = webhookUrl.trim();
+    }
+    if (sheetUrl !== undefined) {
+      if (content.includes('GOOGLE_SHEET_URL=')) {
+        content = content.replace(/GOOGLE_SHEET_URL=.*/g, `GOOGLE_SHEET_URL=${sheetUrl.trim()}`);
+      } else {
+        content += `\nGOOGLE_SHEET_URL=${sheetUrl.trim()}\n`;
+      }
+      process.env.GOOGLE_SHEET_URL = sheetUrl.trim();
+    }
+    fs.writeFileSync(envPath, content, 'utf8');
+    res.json({ success: true, message: 'Google Sheet settings saved successfully.' });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Test connection to Google Apps Script Webhook
+app.post('/api/sheet-sync/test-webhook', async (req, res) => {
+  try {
+    const env = loadEnvDynamically();
+    const webhookUrl = req.body.webhookUrl || env.GOOGLE_SHEET_WEBHOOK_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    const result = await testGoogleWebhook(webhookUrl);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Preview FTP order confirmations and shipment files from /for_adeeva
+app.get('/api/sheet-sync/preview', async (req, res) => {
+  try {
+    const ftpConfig = getEffectiveFtpConfig();
+    const result = await fetchFtpOrdersAndShipments(ftpConfig, '/for_adeeva');
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Execute sync: Read FTP order & shipment files, then send to Google Sheet Webhook
+app.post('/api/sheet-sync/sync', async (req, res) => {
+  try {
+    const env = loadEnvDynamically();
+    const webhookUrl = req.body.webhookUrl || env.GOOGLE_SHEET_WEBHOOK_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL;
+    if (!webhookUrl) {
+      return res.status(400).json({ success: false, message: 'Google Apps Script Webhook URL is not configured.' });
+    }
+
+    const ftpConfig = getEffectiveFtpConfig();
+    const ftpData = await fetchFtpOrdersAndShipments(ftpConfig, '/for_adeeva');
+    if (!ftpData.success) {
+      return res.status(500).json({ success: false, message: ftpData.message });
+    }
+
+    const payload = {
+      action: 'batch_sync',
+      folder: '/for_adeeva',
+      orders: ftpData.orders,
+      shipments: ftpData.shipments,
+      syncedAt: new Date().toISOString()
+    };
+
+    const sheetResponse = await sendToGoogleSheetWebhook(webhookUrl, payload);
+
+    res.json({
+      success: true,
+      ordersCount: ftpData.orders.length,
+      shipmentsCount: ftpData.shipments.length,
+      orders: ftpData.orders,
+      shipments: ftpData.shipments,
+      sheetResponse
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// Move shipment file and its matching order file(s) to /for_adeeva/archive/YYYY-MM-DD/ and update Google Sheet
+app.post('/api/sheet-sync/archive-shipment', async (req, res) => {
+  try {
+    const { shipmentFileName, ccmOrderId, webhookUrl, sheetUrl } = req.body;
+    if (!shipmentFileName) {
+      return res.status(400).json({ success: false, message: 'Shipment file name is required.' });
+    }
+    const env = loadEnvDynamically();
+    const effectiveWebhookUrl = webhookUrl || env.GOOGLE_SHEET_WEBHOOK_URL || process.env.GOOGLE_SHEET_WEBHOOK_URL || '';
+    const effectiveSheetUrl = sheetUrl || env.GOOGLE_SHEET_URL || process.env.GOOGLE_SHEET_URL || '';
+
+    const ftpConfig = getEffectiveFtpConfig();
+    const result = await archiveShipmentAndOrder(ftpConfig, shipmentFileName, ccmOrderId, effectiveWebhookUrl, effectiveSheetUrl);
+    if (!result.success) {
+      return res.status(500).json(result);
+    }
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 if (!process.env.VERCEL) {
