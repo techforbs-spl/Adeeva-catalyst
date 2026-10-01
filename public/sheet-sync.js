@@ -543,12 +543,12 @@ function doGet(e) {
       });
     });
 
-    // Attach click listeners to copy CCM buttons
-    ordersTableBody.querySelectorAll('.copy-ccm-btn').forEach(btn => {
+    // Attach click listeners to copy buttons
+    ordersTableBody.querySelectorAll('.copy-ccm-btn, .copy-text-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        handleCopyCcm(btn);
+        handleCopyText(btn);
       });
     });
   }
@@ -565,7 +565,25 @@ function doGet(e) {
       const ccmHtml = s.ccmOrderId
         ? `<div class="ccm-pill-group">
              <span class="ccm-pill">${escapeHtml(s.ccmOrderId)}</span>
-             <button type="button" class="btn-copy-icon copy-ccm-btn" data-ccm="${escapeHtml(s.ccmOrderId)}" title="Copy CCM Order ID">
+             <button type="button" class="btn-copy-icon copy-text-btn" data-copy="${escapeHtml(s.ccmOrderId)}" title="Copy CCM Order ID">
+               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+             </button>
+           </div>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+
+      const waybillHtml = s.waybill
+        ? `<div class="ccm-pill-group">
+             <span style="font-family:'JetBrains Mono', monospace; font-size:0.82rem; font-weight:600;">${escapeHtml(s.waybill)}</span>
+             <button type="button" class="btn-copy-icon copy-text-btn" data-copy="${escapeHtml(s.waybill)}" title="Copy Waybill / Tracking #">
+               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+             </button>
+           </div>`
+        : `<span style="color:var(--text-muted);">-</span>`;
+
+      const dateShippedHtml = s.dateShipped
+        ? `<div class="ccm-pill-group">
+             <span style="color:var(--text-muted); font-size:0.8rem;">${escapeHtml(s.dateShipped)}</span>
+             <button type="button" class="btn-copy-icon copy-text-btn" data-copy="${escapeHtml(s.dateShipped)}" title="Copy Shipment Date">
                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
              </button>
            </div>`
@@ -592,8 +610,8 @@ function doGet(e) {
           <td>${ccmHtml}</td>
           <td><span class="order-pill">${escapeHtml(s.orderNumber || '-')}</span></td>
           <td><span class="carrier-badge">${escapeHtml(s.carrier || s.rawCarrier || '-')}</span></td>
-          <td style="font-family:'JetBrains Mono', monospace; font-size:0.82rem; font-weight:600;">${escapeHtml(s.waybill || '-')}</td>
-          <td style="color:var(--text-muted); font-size:0.8rem;">${escapeHtml(s.dateShipped || '-')}</td>
+          <td>${waybillHtml}</td>
+          <td>${dateShippedHtml}</td>
           <td>${actionHtml}</td>
         </tr>
       `;
@@ -609,31 +627,32 @@ function doGet(e) {
       });
     });
 
-    // Attach click listeners to copy CCM buttons
-    shipmentsTableBody.querySelectorAll('.copy-ccm-btn').forEach(btn => {
+    // Attach click listeners to copy buttons
+    shipmentsTableBody.querySelectorAll('.copy-ccm-btn, .copy-text-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
         e.preventDefault();
         e.stopPropagation();
-        handleCopyCcm(btn);
+        handleCopyText(btn);
       });
     });
   }
 
-  async function handleCopyCcm(btn) {
-    const ccm = btn.dataset.ccm;
-    if (!ccm) return;
+  async function handleCopyText(btn) {
+    const val = btn.dataset.copy || btn.dataset.ccm;
+    if (!val) return;
     try {
-      await navigator.clipboard.writeText(ccm);
+      await navigator.clipboard.writeText(val);
       btn.classList.add('copied');
+      const originalTitle = btn.title;
       btn.title = 'Copied!';
       btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>`;
       setTimeout(() => {
         btn.classList.remove('copied');
-        btn.title = 'Copy CCM Order ID';
+        btn.title = originalTitle || 'Copy';
         btn.innerHTML = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>`;
       }, 1500);
     } catch (_) {
-      log(`Failed to copy to clipboard: ${ccm}`);
+      log(`Failed to copy to clipboard: ${val}`);
     }
   }
 
